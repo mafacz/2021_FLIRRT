@@ -7,8 +7,6 @@ library(table1)
 ##################################
 Pop1 <- read_csv("C:/data/processed/2021_FLIRRT/pop_included.csv")
 apache_gr <- read_csv("C:/data/processed/2021_FLIRRT/apache_gr.csv")
-## (leere) Spalten löschen:
-apache_gr[, c("...6", "...7", "...8", "...9")] <- list(NULL)
 
 Pop1$length_of_stay <- Pop1$length_of_stay/86400          ## Umwandlung in TAGE
 
