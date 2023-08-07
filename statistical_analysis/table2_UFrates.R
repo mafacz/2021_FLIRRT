@@ -3,6 +3,7 @@ library(dplyr)
 library(table1)
 library(ggplot2)
 library(gridExtra)
+library(grid)
 library(knitr)
 
 ##################################
@@ -169,8 +170,10 @@ hist(percentage_time_UF_0$percentage_UF_0)
 # Combine all four data frames by columns
 final_desc_stats <- cbind(desc_stats, change_freq_desc_stats[,2], desc_stats_UF_0[,2])
 
-# If you want to rename the columns for clarity, you can do so
-colnames(final_desc_stats) <- c("Statistic", "UF_absolute distribution", "UF_indexed distribution", "Durations Between UF Changes [h]", "% of UF=0")
+colnames(final_desc_stats) <- c("", "UF_absolute distribution", "UF_indexed distribution", "Durations Between UF Changes [h]", "% of UF=0")
 
-final_desc_stats
+#print
+result_table <- tableGrob(t(final_desc_stats))
+grid.newpage()
+grid.draw(result_table)
 
