@@ -10,8 +10,6 @@ library(knitr)
 ##### Load data #####
 ##################################
 
-#######CAVE!!!!!!!!!!!!!there seems to be a mistake in the changes csv. the one who have only a start and an end do not have any entries
-
 Pop <- read_csv("C:/data/processed/2021_FLIRRT/pop_included.csv")
 measurements_changes <- read_csv("C:/data/processed/2021_FLIRRT/changes.csv")
 
@@ -91,6 +89,7 @@ desc_stats <- data.frame(
     IQR(selected_vars$UF_indexed, na.rm = TRUE) # Adding IQR
   )
 )
+desc_stats
 
 ##################################
 ##### Descriptive statistics for change frequency #####
@@ -126,6 +125,7 @@ change_freq_desc_stats <- data.frame(
     IQR(selected_vars$duration_between_UF_changes, na.rm = TRUE) # Adding IQR
   )
 )
+change_freq_desc_stats
 
 #####################################
 ##### Descriptive statistics on how frequently positive UF #####
@@ -160,6 +160,7 @@ desc_stats_UF_0 <- data.frame(
     IQR(percentage_time_UF_0$percentage_UF_0, na.rm = TRUE)
   )
 )
+desc_stats_UF_0
 
 hist(percentage_time_UF_0$percentage_UF_0)
 
