@@ -18,9 +18,9 @@ pop_augmented <- left_join(population, pre_crrt_values, by = c("patientid" = "pa
 pop_augmented$BMI <- (pop_augmented$weight_at_admission / (pop_augmented$height_at_admission/100)^2)
 
 ## Weight/Height outlier detection and correction
-pop_augmented_stayduration$BMI_outl <- pop_augmented_stayduration$BMI > 65 | pop_augmented_stayduration$BMI < 10
+pop_augmented$BMI_outl <- pop_augmented$BMI > 65 | pop_augmented$BMI < 10
 
-ggplot(pop_augmented_stayduration, aes(x = height_at_admission, y = weight_at_admission)) +
+ggplot(pop_augmented, aes(x = height_at_admission, y = weight_at_admission)) +
   geom_point(aes(colour = BMI_outl))
 
 ## spalten umbenennen (length statt lenght)
