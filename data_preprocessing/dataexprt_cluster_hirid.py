@@ -4,7 +4,7 @@ import os.path
 import sys
 import argparse
 
-step_size = 3000
+step_size = 6000
 i = 0
 for batch in range(60000,114000, step_size):
     i = i + 1
@@ -23,11 +23,12 @@ for batch in range(60000,114000, step_size):
                                 "-n", "{}".format(n_cpu_cores),
                                 "--time", "{}:00:00".format(n_compute_hours),
                                 "--mail-type FAIL",
-                                "--exclude compute-biomed-10,compute-biomed-15",
+                                "--partition=gpu",  
                                 "--job-name","{}".format(job_name), "-o", log_result_file, "-e", log_error_file, "--wrap",
                                 '\"python3', compute_script_path, "--run_mode CLUSTER",
                                 "--patientid_start {}".format(batch), 
-                                "--patientid_stop {}".format(batch+step_size-1), '\"'])
+                                "--patientid_stop {}".format(batch+step_size-1),
+                                "--database_hirid true", '\"'])
      
     print (cmd_line)
     subprocess.call([cmd_line], shell=True)

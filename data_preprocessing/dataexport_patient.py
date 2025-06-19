@@ -1,16 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
-from pyspark.sql import functions as sf
-import polars
-
-
-SOURCE_PATH="/cluster/work/grlab/clinical/hirid2/pg_db_export"
-PRESENCE_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_icu_presence/2021-12-04"
-CRRT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_crrt/2021-12-04"
-STAY_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/stay_info/2021-12-04"
-VENT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_ventilation/2021-02-12"
-MERGED_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_merged/2022-05-02"
+import polars as pl
 
 def merge_short_gaps(status_arr, short_gap_min, time_intervall, close_beginning=True):
     ''' Merge short gaps in the status array, the time intervall and  gap_lenght are in minutes'''
@@ -35,41 +26,111 @@ def merge_short_gaps(status_arr, short_gap_min, time_intervall, close_beginning=
     
     return status_arr, session_counter
 
-def record_values(idx, session_lenght, df_crrt, patid, timepoint_label):
-    values = [patid, session_lenght, timepoint_label, idx]
+def record_values(idx, Session_start_time, session_lenght, df_crrt, patid, timepoint_label, fluid_balance_pre_crrt):
+    values = [patid, Session_start_time, session_lenght, timepoint_label, idx]
+    values.append(df_crrt.iloc[idx].AbsDatetime)
+    values.append(df_crrt.iloc[idx].sofa_total_24h)
     #ventilation state
     values.append(df_crrt.iloc[idx].dm_vent_inv_state)
     values.append(df_crrt.iloc[idx].dm_vent_niv_state)
     #cardiovasc state
     values.append(df_crrt.iloc[idx].vm2001)
     values.append(df_crrt.iloc[idx].vm2002)
+    values.append(df_crrt.iloc[idx].vm2105)
+    values.append(df_crrt.iloc[idx].vm2201)
     #renal state
     values.append(df_crrt.iloc[idx].vm5010)
-    
+    values.append(df_crrt.iloc[idx].vm5025)
+    #volume state
+    values.append(df_crrt.iloc[idx].dm_balancerate_h)
+    values.append(fluid_balance_pre_crrt)
+
     return values
 
-def process_patient(pid, spark):
-    timeintervall = 5
-    eval_steps_size_hours = 6
-    first_eval_timepoint_hours = 1
+def process_patient(pid, hirid=True):
 
+    if hirid:
+        PRESENCE_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_icu_presence/latest"
+        STAY_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/stay_info/latest"
+        VENT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_ventilation/latest"
+        MERGED_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_merged/latest"
+        CRRT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_crrt/latest"
+        VOLUME_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_volumestatus/latest"
+        SCORE_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_HiRID/dm_scores/latest"
+    else:
+        PRESENCE_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_icu_presence/latest"
+        STAY_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/stay_info/latest"
+        VENT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_ventilation/latest"
+        MERGED_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_merged/latest"
+        CRRT_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_crrt/latest"
+        VOLUME_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_volumestatus/latest"
+        SCORE_PATH="/cluster/work/grlab/clinical/hirid2/research/faltysm/ICU_pipe/DataFrame/private_UMCDb/dm_scores/latest"
+    
     #load data
-    stay_data = spark.read.parquet(STAY_PATH).filter(sf.col("patientid") == pid).toPandas()
-    df_vent = spark.read.parquet(os.path.join(VENT_PATH)).filter(sf.col("patientid") == pid)
-    df_crrt = spark.read.parquet(os.path.join(CRRT_PATH)).filter(sf.col("patientid") == pid)
-    df_presence = spark.read.parquet(os.path.join(PRESENCE_PATH)).filter(sf.col("patientid") == pid)
-    df_merged = spark.read.parquet(os.path.join(MERGED_PATH)).filter(sf.col("patientid") == pid)
+    stay_data = pl.scan_parquet(os.path.join(STAY_PATH, '*.parquet')).filter(pl.col("patientid") == pid).collect().to_pandas()
+    # VENT
+    df_vent_scan = pl.scan_parquet(os.path.join(VENT_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_vent_scan.schema:
+        df_vent_scan = df_vent_scan.drop("__index_level_0__")
+    df_vent = df_vent_scan
 
-    df_crrt = df_presence.join(df_crrt, on=["AbsDatetime"], how='left')
-    df_crrt = df_crrt.join(df_vent, on=["AbsDatetime"], how='left')
-    df_crrt = df_crrt.join(df_merged, on=["AbsDatetime"], how='outer').sort("AbsDatetime").toPandas()
+    # PRESENCE
+    df_presence_scan = pl.scan_parquet(os.path.join(PRESENCE_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_presence_scan.schema:
+        df_presence_scan = df_presence_scan.drop("__index_level_0__")
+    df_presence = df_presence_scan
+
+    # MERGED
+    df_merged_scan = pl.scan_parquet(os.path.join(MERGED_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_merged_scan.schema:
+        df_merged_scan = df_merged_scan.drop("__index_level_0__")
+    df_merged = df_merged_scan.with_columns(pl.col("PatientID").cast(pl.Int64))
+
+    # CRRT
+    df_crrt_scan = pl.scan_parquet(os.path.join(CRRT_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_crrt_scan.schema:
+        df_crrt_scan = df_crrt_scan.drop("__index_level_0__")
+    df_crrt = df_crrt_scan
+
+    # SCORE
+    df_score_scan = pl.scan_parquet(os.path.join(SCORE_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_score_scan.schema:
+        df_score_scan = df_score_scan.drop("__index_level_0__")
+    df_score = df_score_scan.with_columns(pl.col("PatientID").cast(pl.Int64))
+
+    # VOLUME
+    df_volume_scan = pl.scan_parquet(os.path.join(VOLUME_PATH, '*.parquet')).filter(pl.col("PatientID") == pid)
+    if "__index_level_0__" in df_volume_scan.schema:
+        df_volume_scan = df_volume_scan.drop("__index_level_0__")
+    df_volume = df_volume_scan.with_columns(pl.col("PatientID").cast(pl.Int64))
+
+    df_crrt = df_presence.join(df_crrt, on=["PatientID", "AbsDatetime"], how='outer')
+    df_crrt = df_crrt.join(df_vent, on=["PatientID", "AbsDatetime"], how='outer')
+    df_crrt = df_crrt.join(df_volume, on=["PatientID", "AbsDatetime"], how='outer')
+    df_crrt = df_crrt.join(df_score, on=["PatientID", "AbsDatetime"], how='outer')
+    df_crrt = df_crrt.join(df_merged, on=["PatientID", "AbsDatetime"], how='outer').sort("AbsDatetime").collect().to_pandas()
+
+    timeintervall = 5
+    eval_steps_size_hours = 1
 
     #resamplee for 5min timegrid
     df_crrt = df_crrt.resample('5min', on='AbsDatetime').first().reset_index()
+    df_crrt["dm_balancerate_cum"] = df_crrt["dm_balancerate_cum"].fillna(method="ffill", limit=6)                                            
 
-    #forwardfill the variables you want
-    ff_cols = ['vm5010']
-    df_crrt.loc[:,ff_cols] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=3)
+    #forward/backward fill the variables you want
+    ff_cols = ['vm2201', 'vm2105']
+    bf_cols = ["dm_balancerate_h", "sofa_total_24h"]
+
+    df_crrt.loc[:,ff_cols] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=24)
+    df_crrt.loc[:,bf_cols] = df_crrt.loc[:,bf_cols].fillna(method='bfill', limit=24)
+
+    if hirid:
+        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=4)
+        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,ff_cols].fillna(method='ffill')
+    else:
+        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=24)
+        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,ff_cols].fillna(method='ffill')
+
 
     if (len(stay_data) == 0):
         print("stay data empty")
@@ -84,7 +145,7 @@ def process_patient(pid, spark):
     crrt_session, total_session_count = merge_short_gaps(df_crrt.dm_crrt.array, 1440, timeintervall, False)
 
     #generate patient information about the patient having the crrt
-    patient_data = stay_data[["patientid", "icu_stay_nr", "lenght_of_stay","age_at_admission","gender","emergency_admission", "height_at_admission", "weight_at_admission", "adm_apache_group", "adm_codeid", "apache_score", "outcome_icu_death", "outcome_death_30d"]].iloc[0].values.tolist()
+    patient_data = stay_data[["patientid", "icu_stay_nr", "lenght_of_stay","age_at_admission","gender","emergency_admission", "height_at_admission", "weight_at_admission", "adm_apache_group", "apache_score", "outcome_icu_death", "outcome_death_28d"]].iloc[0].values.tolist()
 
     #loop through first episode and generate information on regular basis and UF changes
     regular_timepoints = []
@@ -92,31 +153,36 @@ def process_patient(pid, spark):
     current_UF = 0
     beforeFirstSession = True
     session_lenght = timeintervall
+    Session_start_time = []
+    fluid_balance_pre_crrt = 0
     counter = 0
     for idx in range(len(crrt_session)):
         cur_state=crrt_session[idx]
-        if cur_state==0.0 and not beforeFirstSession:
+        if (cur_state==0.0 and not beforeFirstSession) | idx == len(crrt_session)-1:
             #first time point after new session
-            change_timepoints.append(record_values(idx, session_lenght, df_crrt, pid, "end"))
+            change_timepoints.append(record_values(idx, Session_start_time, session_lenght, df_crrt, pid, "end", fluid_balance_pre_crrt))
             break
         if cur_state==1 and not beforeFirstSession:
             #timepoint in session
-            if session_lenght==first_eval_timepoint_hours*60:
-                #first eval step 
-                regular_timepoints.append(record_values(idx, session_lenght, df_crrt, pid, session_lenght / 60))
             if session_lenght % (eval_steps_size_hours*60)==0:
                 #regular eval steps
-                regular_timepoints.append(record_values(idx, session_lenght, df_crrt, pid, session_lenght / 60))
+                regular_timepoints.append(record_values(idx, Session_start_time, session_lenght, df_crrt, pid, session_lenght / 60, fluid_balance_pre_crrt))
             if df_crrt.iloc[idx].vm5010 != current_UF and not np.isnan(df_crrt.iloc[idx].vm5010):
                 #eval step if uf changed
-                change_timepoints.append(record_values(idx, session_lenght, df_crrt, pid, "change"))
+                change_timepoints.append(record_values(idx, Session_start_time, session_lenght, df_crrt, pid, "change", fluid_balance_pre_crrt))
                 current_UF = df_crrt.iloc[idx].vm5010
             session_lenght += timeintervall
         elif cur_state==1.0 and beforeFirstSession:
-            #newly in first session
+            #calculate session information values
+            fluid_balance_pre_crrt = df_crrt.iloc[idx]['dm_balancerate_cum']
+            
+            ###newly in first session
+            #record values at start
             current_UF = df_crrt.iloc[idx].vm5010
-            regular_timepoints.append(record_values(idx-1, 0, df_crrt, pid, -1))
-            change_timepoints.append(record_values(idx, session_lenght, df_crrt, pid, "start"))
+            Session_start_time = df_crrt.iloc[idx].AbsDatetime
+            regular_timepoints.append(record_values(idx-1, Session_start_time, 0, df_crrt, pid, -1, fluid_balance_pre_crrt))
+            change_timepoints.append(record_values(idx, Session_start_time, session_lenght, df_crrt, pid, "start", fluid_balance_pre_crrt))
+
             beforeFirstSession = False
 
     patient_data.append(session_lenght)
