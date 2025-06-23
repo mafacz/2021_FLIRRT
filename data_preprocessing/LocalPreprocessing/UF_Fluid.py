@@ -177,7 +177,7 @@ def process_dataset(dataset_name, stays_path, regular_path, changes_path, suffix
     regular_df_UFperkg["vm5010_idx"] = regular_df_UFperkg["vm5010"] / regular_df_UFperkg["weight_at_admission"]
     regular_df_UFperkg["vm2201_idx"] = regular_df_UFperkg["vm2201"] / regular_df_UFperkg["weight_at_admission"]
     regular_df_UFperkg = regular_df_UFperkg.drop(columns=["weight_at_admission"])
-
+ 
     # Calculate statistics and bins for UF: 
     UFnet_df = calculate_statistics(df=regular_df_UFperkg, variable="vm5010_idx")
     creating_UF_bins(column_to_bin="mean_vm5010_idx", newcolumname="mean_UFnet_bin", df=UFnet_df)
@@ -221,7 +221,9 @@ def process_dataset(dataset_name, stays_path, regular_path, changes_path, suffix
 
     return {
         "fluid_and_ultrafiltration_df": fluid_and_ultrafiltration_df,
-        "Lab_values_reg": Lab_values_reg
+        "Lab_values_reg": Lab_values_reg,
+        "regular_UFperkg" : regular_df_UFperkg,
+        "changes_UFperkg" : changes_df_UFperkg
     }
 
 # Paths for each dataset
@@ -242,6 +244,8 @@ datasets = {
 
 results_fluid_and_UF = []
 results_lab_values = []
+results_regular_UFperkg = []
+results_changes_UFperkg = []
 
 for ds_name, paths in datasets.items():
     result = process_dataset(ds_name, paths["stays"], paths["regular"], paths["changes"], paths["suffix"])
@@ -251,17 +255,25 @@ for ds_name, paths in datasets.items():
     
     result["fluid_and_ultrafiltration_df"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_{ds_name}.csv", index=False)
     result["Lab_values_reg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Lab_values_reg_{ds_name}.csv", index=False)
+    result["regular_UFperkg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_{ds_name}.csv", index=False)
+    result["changes_UFperkg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\changes_UFperkg_{ds_name}.csv", index=False)
     
     results_fluid_and_UF.append(result["fluid_and_ultrafiltration_df"])
     results_lab_values.append(result["Lab_values_reg"])
-
+    results_regular_UFperkg.append(result["regular_UFperkg"])
+    results_changes_UFperkg.append(result["changes_UFperkg"])
+    
 # Combine results
 combined_fluid_and_UF = pd.concat(results_fluid_and_UF, ignore_index=True)
 combined_lab_values = pd.concat(results_lab_values, ignore_index=True)
+combined_regular_UFperkg = pd.concat(results_regular_UFperkg, ignore_index=True)
+combined_changes_UFperkg = pd.concat(results_changes_UFperkg, ignore_index=True)
 
 # Save combined CSVs
 combined_fluid_and_UF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_Total.csv", index=False)
 combined_lab_values.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Lab_values_reg_Total.csv", index=False)
+combined_regular_UFperkg.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_Total.csv", index=False)
+combined_changes_UFperkg.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\changes_UFperkg_Total.csv", index=False)
 
 print("Processing complete. Combined CSV files saved.")
 
