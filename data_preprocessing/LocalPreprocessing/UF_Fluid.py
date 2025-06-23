@@ -61,10 +61,12 @@ def creating_UF_bins(column_to_bin, newcolumname, df, low_bin_limit = 1.01, high
     #       < 1.01 [ml/kg/h] is categorised as low
     #       1.01 until 1.75 [ml/kg/h] is categorised as moderate
     #       > 1.75 [ml/kg/h] is categorised as high    
-    condition = [df[column_to_bin] == 0, 
-                 df[column_to_bin] < low_bin_limit, 
-                 df[column_to_bin] <= high_bin_limit, 
-                 df[column_to_bin] > high_bin_limit]
+    condition = [
+        df[column_to_bin] == 0,                                        # Zero bin
+        (df[column_to_bin] > 0) & (df[column_to_bin] < low_bin_limit), # Low bin (excluding zero)
+        (df[column_to_bin] >= low_bin_limit) & (df[column_to_bin] <= high_bin_limit),  # Moderate bin
+        df[column_to_bin] > high_bin_limit                             # High bin
+    ]
     category = ["zero",f"low (<{low_bin_limit})", f"moderate ({low_bin_limit}-{high_bin_limit})", f"high (>{high_bin_limit})"]
     df[newcolumname] = np.select(condition, category, default="NaN")
     return df
@@ -78,11 +80,14 @@ def creating_FB_bins(column_to_bin, newcolumname, df, neutral_bin_limit=20.833, 
     ### If neutral_bin_limit is set to 100, then: 
     #       < -100 [ml/h] is categorised as negative
     #       -100 until 100 [ml/h] is categorised as neutral
-    #       > 100 [ml/h] is categorised as positive    
-    condition = [df[column_to_bin] > neutral_bin_limit, 
-              df[column_to_bin] >= -neutral_bin_limit,
-              df[column_to_bin] < -negative_bin_limit,
-              df[column_to_bin] < -neutral_bin_limit]
+    #       > 100 [ml/h] is categorised as positive       
+    condition = [
+        df[column_to_bin] > neutral_bin_limit,  # Positive bin
+        (df[column_to_bin] >= -neutral_bin_limit) & (df[column_to_bin] <= neutral_bin_limit),  # Neutral bin
+        df[column_to_bin] < -negative_bin_limit,  # Strong negative bin
+        (df[column_to_bin] < -neutral_bin_limit) & (df[column_to_bin] >= -negative_bin_limit)  # Light negative bin
+    ]
+
     category = [f"positive (>{neutral_bin_limit})", f"neutral (-{neutral_bin_limit} - {neutral_bin_limit})", f"strong_negative (< -{negative_bin_limit})", f"light_negative (-{negative_bin_limit} - -{neutral_bin_limit})"]
     df[newcolumname] = np.select(condition, category, default="NaN")
     return df
