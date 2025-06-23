@@ -1,18 +1,30 @@
-
+import os
+import json
+import socket
 import pandas as pd
 import numpy as np
-import dask as dd
 import glob
 
 ###############
 ## Load data ##
-HiRID = True
+HiRID = False
+
+# Load configuration
+with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
+    config = json.load(f)
+
+data_root = config[socket.gethostname()]["data_root"]
+output_root = config[socket.gethostname()]["output_root"]
+
 print(f"HiRID = ",HiRID)
 
 if HiRID:
-    filepath_changes = glob.glob("C:\\Programming\\sources\\FLIRRT\\HiRID\\2025-06-05\\change_measurements\\*parquet")
-else: 
-    filepath_changes = glob.glob("C:\\Programming\\sources\\FLIRRT\\AmsterdamUMCDb\\2025-06-05\\change_measurements\\*parquet")
+    suffix = "_HiRID"
+    filepath_changes = glob.glob(os.path.join(data_root, "Hirid", "2025-06-20", "change_measurements", "*.parquet"))
+else:
+    suffix = "_AmsterdamUMCDb"
+    filepath_changes = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-20", "change_measurements", "*.parquet"))
+
 dataframes_changes = [pd.read_parquet(file) for file in filepath_changes]
 changes_df = pd.concat(dataframes_changes, ignore_index= True)
 
@@ -41,7 +53,7 @@ if HiRID:
     changes_df["dm_vent_inv_state"] = changes_df["dm_vent_inv_state"].astype("float64")
     changes_df["dm_vent_niv_state"] = changes_df["dm_vent_niv_state"].astype("float64")
 
-#######Add a row with the source of the data / add the suffix to the patid to make mischmasch impossible
+#######Add a column with the source of the data / add the suffix to the patid to make mischmasch impossible
 if HiRID:
     changes_df["source"] = "HiRID"
     changes_df['patid'] =  changes_df['patid'].astype(str) + '_HiRID'
@@ -66,16 +78,18 @@ changes_df_48h_NUF = changes_df.groupby("patid").apply(lambda x: from_NUF_start_
 ##
 
 if HiRID:
-    changes_df.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\changes_preprocessed_HiRID.csv", index=False)
-    changes_df_48h.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\changes_preprocessed_48h_HiRID.csv", index=False)
-    changes_df_48h_NUF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\changes_preprocessed_48h_NUF_HiRID.csv", index=False)
-
+    changes_df.to_csv(os.path.join(output_root, "changes_preprocessed_HiRID.csv"), index=False)
+    changes_df_48h.to_csv(os.path.join(output_root, "changes_preprocessed_48h_HiRID.csv"), index=False)
+    changes_df_48h_NUF.to_csv(os.path.join(output_root, "changes_preprocessed_48h_NUF_HiRID.csv"), index=False)
 else:
-    changes_df.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\changes_preprocessed_AmsterdamUMCDb.csv", index=False)
-    changes_df_48h.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\changes_preprocessed_48h_AmsterdamUMCDb.csv", index=False)
-    changes_df_48h_NUF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\changes_preprocessed_48h_NUF_AmsterdamUMCDb.csv", index=False)
+    changes_df.to_csv(os.path.join(output_root, "changes_preprocessed_AmsterdamUMCDb.csv"), index=False)
+    changes_df_48h.to_csv(os.path.join(output_root, "changes_preprocessed_48h_AmsterdamUMCDb.csv"), index=False)
+    changes_df_48h_NUF.to_csv(os.path.join(output_root, "changes_preprocessed_48h_NUF_AmsterdamUMCDb.csv"), index=False)
 
 ##
 ######    
 ##############
+
+
+
 

@@ -1,5 +1,9 @@
+import os
+import json
+import socket
 import pandas as pd
 import numpy as np
+
 
 #####################################################################################################################################################
 
@@ -226,18 +230,28 @@ def process_dataset(dataset_name, stays_path, regular_path, changes_path, suffix
         "changes_UFperkg" : changes_df_UFperkg
     }
 
+
+# Load config
+with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
+    config = json.load(f)
+
+# Read base directory from config
+base_dir = config[socket.gethostname()]["output_root"]
+final_dir = os.path.join(base_dir, "Final")
+os.makedirs(final_dir, exist_ok=True)
+
 # Paths for each dataset
 datasets = {
     "HiRID": {
-        "stays": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\stays_filtered_HiRID.csv",
-        "regular": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\regular_preprocessed_HiRID.csv",
-        "changes": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\changes_preprocessed_HiRID.csv",
+        "stays": os.path.join(base_dir, "stays_filtered_HiRID.csv"),
+        "regular": os.path.join(base_dir, "regular_preprocessed_HiRID.csv"),
+        "changes": os.path.join(base_dir, "changes_preprocessed_HiRID.csv"),
         "suffix": "_HiRID"
     },
     "AmsterdamUMCDb": {
-        "stays": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\stays_filtered_AmsterdamUMCDb.csv",
-        "regular": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\regular_preprocessed_AmsterdamUMCDb.csv",
-        "changes": "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\changes_preprocessed_AmsterdamUMCDb.csv",
+        "stays": os.path.join(base_dir, "stays_filtered_AmsterdamUMCDb.csv"),
+        "regular": os.path.join(base_dir, "regular_preprocessed_AmsterdamUMCDb.csv"),
+        "changes": os.path.join(base_dir, "changes_preprocessed_AmsterdamUMCDb.csv"),
         "suffix": "_AmsterdamUMCDb"
     }
 }
@@ -253,11 +267,11 @@ for ds_name, paths in datasets.items():
     result["fluid_and_ultrafiltration_df"]["dataset"] = ds_name
     result["Lab_values_reg"]["dataset"] = ds_name
     
-    result["fluid_and_ultrafiltration_df"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_{ds_name}.csv", index=False)
-    result["Lab_values_reg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Lab_values_reg_{ds_name}.csv", index=False)
-    result["regular_UFperkg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_{ds_name}.csv", index=False)
-    result["changes_UFperkg"].to_csv(f"C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\changes_UFperkg_{ds_name}.csv", index=False)
-    
+    result["fluid_and_ultrafiltration_df"].to_csv(os.path.join(final_dir, f"Fluid_and_Ultrafiltration_{ds_name}.csv"), index=False)
+    result["Lab_values_reg"].to_csv(os.path.join(final_dir, f"Lab_values_reg_{ds_name}.csv"), index=False)
+    result["regular_UFperkg"].to_csv(os.path.join(final_dir, f"regular_UFperkg_{ds_name}.csv"), index=False)
+    result["changes_UFperkg"].to_csv(os.path.join(final_dir, f"changes_UFperkg_{ds_name}.csv"), index=False)
+
     results_fluid_and_UF.append(result["fluid_and_ultrafiltration_df"])
     results_lab_values.append(result["Lab_values_reg"])
     results_regular_UFperkg.append(result["regular_UFperkg"])
@@ -270,10 +284,10 @@ combined_regular_UFperkg = pd.concat(results_regular_UFperkg, ignore_index=True)
 combined_changes_UFperkg = pd.concat(results_changes_UFperkg, ignore_index=True)
 
 # Save combined CSVs
-combined_fluid_and_UF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_Total.csv", index=False)
-combined_lab_values.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Lab_values_reg_Total.csv", index=False)
-combined_regular_UFperkg.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_Total.csv", index=False)
-combined_changes_UFperkg.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\changes_UFperkg_Total.csv", index=False)
+combined_fluid_and_UF.to_csv(os.path.join(final_dir, "Fluid_and_Ultrafiltration_Total.csv"), index=False)
+combined_lab_values.to_csv(os.path.join(final_dir, "Lab_values_reg_Total.csv"), index=False)
+combined_regular_UFperkg.to_csv(os.path.join(final_dir, "regular_UFperkg_Total.csv"), index=False)
+combined_changes_UFperkg.to_csv(os.path.join(final_dir, "changes_UFperkg_Total.csv"), index=False)
+
 
 print("Processing complete. Combined CSV files saved.")
-

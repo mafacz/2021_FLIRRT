@@ -1,21 +1,31 @@
-## Clean the data / change errors 
-
+import os
+import json
+import socket
 import pandas as pd
 import numpy as np
-import dask as dd
 import glob
 
-############### 
+###############
 ## Load data ##
-
 HiRID = False
+
+# Load configuration
+with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
+    config = json.load(f)
+
+data_root = config[socket.gethostname()]["data_root"]
+output_root = config[socket.gethostname()]["output_root"]
+
 print(f"HiRID = ",HiRID)
 
 if HiRID:
-    filepath_stay = glob.glob("C:\\Programming\\sources\\FLIRRT\\HiRID\\2025-06-05//stays//*parquet")
+    suffix = "_HiRID"
+    filepath_stays = glob.glob(os.path.join(data_root, "Hirid", "2025-06-20", "stays", "*.parquet"))
 else:
-    filepath_stay = glob.glob("C:\\Programming\\sources\\FLIRRT\\AmsterdamUMCDb\\2025-06-05//stays//*parquet")
-dataframes_stay = [pd.read_parquet(file) for file in filepath_stay]
+    suffix = "_AmsterdamUMCDb"
+    filepath_stays = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-20", "stays", "*.parquet"))
+
+dataframes_stay = [pd.read_parquet(file) for file in filepath_stays]
 stays_df = pd.concat(dataframes_stay, ignore_index= True)
 
 #rename columns to standardise format -> now it is called "patid" in all three dataframes, and correction of lenght to length
@@ -72,9 +82,10 @@ else:
 ##
 
 if HiRID:
-    stays_df_filtered.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\stays_filtered_HiRID.csv", index=False)
+    stays_df_filtered.to_csv(os.path.join(output_root, "stays_filtered_HiRID.csv"), index=False)
 else:
-    stays_df_filtered.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\stays_filtered_AmsterdamUMCDb.csv", index=False)
+    stays_df_filtered.to_csv(os.path.join(output_root, "stays_filtered_AmsterdamUMCDb.csv"), index=False)
+
 
 if HiRID:
     print("HiRID:")
@@ -93,9 +104,3 @@ print("Total excluded patients:", len(stays_df) - len(stays_df_filtered))
 ##
 ######
 ##############
-
-
-
-
-
-

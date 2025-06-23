@@ -1,20 +1,29 @@
-
+import os
+import json
+import socket
 import pandas as pd
 import numpy as np
-import dask as dd
 import glob
 
 ###############
 ## load data ##
-HiRID = False
+HiRID = True
+# Load configuration
+with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
+    config = json.load(f)
+
+data_root = config[socket.gethostname()]["data_root"]
+output_root = config[socket.gethostname()]["output_root"]
+
 print(f"HiRID = ",HiRID)
 
 if HiRID:
     suffix = "_HiRID"
-    filepath_regular = glob.glob("C:\\Programming\\sources\\FLIRRT\\Hirid\\2025-06-05\\regular_measurements\\*parquet")
+    filepath_regular = glob.glob(os.path.join(data_root, "Hirid", "2025-06-20", "regular_measurements", "*.parquet"))
 else:
     suffix = "_AmsterdamUMCDb"
-    filepath_regular = glob.glob("C:\\Programming\\sources\\FLIRRT\\AmsterdamUMCDb\\2025-06-05\\regular_measurements\\*parquet")
+    filepath_regular = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-20", "regular_measurements", "*.parquet"))
+
 dataframes_regular = [pd.read_parquet(file) for file in filepath_regular]
 regular_df = pd.concat(dataframes_regular, ignore_index= True)
 
@@ -81,14 +90,13 @@ regular_df_48h_NUF = regular_df_removed_outliers.groupby("patid").apply(lambda x
 ##
 
 if HiRID:
-    regular_df_removed_outliers.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\regular_preprocessed_HiRID.csv", index=False)
-    regular_df_48h.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\regular_preprocessed_48h_HiRID.csv", index=False)
-    regular_df_48h_NUF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\HiRID_preprocessed\\regular_preprocessed_48h_NUF_HiRID.csv", index=False)
-
+    regular_df_removed_outliers.to_csv(os.path.join(output_root, "regular_preprocessed_HiRID.csv"), index=False)
+    regular_df_48h.to_csv(os.path.join(output_root, "regular_preprocessed_48h_HiRID.csv"), index=False)
+    regular_df_48h_NUF.to_csv(os.path.join(output_root, "regular_preprocessed_48h_NUF_HiRID.csv"), index=False)
 else:
-    regular_df_removed_outliers.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\regular_preprocessed_AmsterdamUMCDb.csv", index=False)
-    regular_df_48h.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\regular_preprocessed_48h_AmsterdamUMCDb.csv", index=False)
-    regular_df_48h_NUF.to_csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\UMCDb_preprocessed\\regular_preprocessed_48h_NUF_AmsterdamUMCDb.csv", index=False)
+    regular_df_removed_outliers.to_csv(os.path.join(output_root, "regular_preprocessed_AmsterdamUMCDb.csv"), index=False)
+    regular_df_48h.to_csv(os.path.join(output_root, "regular_preprocessed_48h_AmsterdamUMCDb.csv"), index=False)
+    regular_df_48h_NUF.to_csv(os.path.join(output_root, "regular_preprocessed_48h_NUF_AmsterdamUMCDb.csv"), index=False)
 
 ##
 
