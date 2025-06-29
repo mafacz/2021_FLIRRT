@@ -50,9 +50,9 @@ def record_values(idx, Session_start_time, session_lenght, df_crrt, patid, timep
     urine_flow_h = df_crrt.iloc[idx:end_idx]["dm_urineflow_h"]  # ml/h, every 5 minutes
     urine_volume_ml_24h = urine_flow_h.sum() / 12  # Convert to total ml over 24h (5min = 1/12h)
 
-    # Append flag: True if total urine < 200 ml (extreme oliguria)
+    # Append flag: True if total urine < 100 ml (extreme oliguria)
     values.append(df_crrt.iloc[idx].dm_urineflow_h)
-    values.append(urine_volume_ml_24h < 200)
+    values.append(urine_volume_ml_24h < 100)
 
     return values
 
