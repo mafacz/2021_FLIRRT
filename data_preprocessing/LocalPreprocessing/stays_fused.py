@@ -39,9 +39,18 @@ initial_window = regular_df_UFperkg[regular_df_UFperkg["session_length"] <= 24*6
 initial_window = initial_window.dropna(subset=["sofa_total_24h"])
 SOFA_score = initial_window.groupby("patid")["sofa_total_24h"].first().reset_index(name="SOFA_score")
 
+# Invasive Ventilation status:
+# Filter to first 24h and drop rows with missing info # Get first Ventilation status per patient (in first 24h after CRRT start)
+# If NaN, considered to not have invasive ventilation at start. 
+initial_window = regular_df_UFperkg[regular_df_UFperkg["session_length"] <= 24*60]
+initial_window = initial_window.dropna(subset=["dm_vent_inv_state"])
+inv_vent = initial_window.groupby("patid")["dm_vent_inv_state"].first().reset_index(name="invasive_ventilation")
+inv_vent = inv_vent.fillna(0)
+
 # Merge 
 stays_fused = stays_filtered.merge(fluidoverload, on="patid", how="left") \
-                            .merge(SOFA_score, on="patid", how="left")
+                            .merge(SOFA_score, on="patid", how="left") \
+                            .merge(inv_vent, on="patid", how="left")
 
 stays_fused.to_csv(os.path.join(output_root, "Final", f"stays_fused{suffix}.csv"), index=False)
 
