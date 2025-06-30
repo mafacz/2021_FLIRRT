@@ -7,7 +7,8 @@ import glob
 
 ###############
 ## load data ##
-HiRID = True
+HiRID = False
+
 # Load configuration
 with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
     config = json.load(f)
@@ -19,10 +20,10 @@ print(f"HiRID = ",HiRID)
 
 if HiRID:
     suffix = "_HiRID"
-    filepath_regular = glob.glob(os.path.join(data_root, "Hirid", "2025-06-20", "regular_measurements", "*.parquet"))
+    filepath_regular = glob.glob(os.path.join(data_root, "Hirid", "2025-06-29", "regular_measurements", "*.parquet"))
 else:
     suffix = "_AmsterdamUMCDb"
-    filepath_regular = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-20", "regular_measurements", "*.parquet"))
+    filepath_regular = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-29", "regular_measurements", "*.parquet"))
 
 dataframes_regular = [pd.read_parquet(file) for file in filepath_regular]
 regular_df = pd.concat(dataframes_regular, ignore_index= True)

@@ -7,7 +7,7 @@ import glob
 
 ###############
 ## Load data ##
-HiRID = False
+HiRID = True
 
 # Load configuration
 with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
@@ -20,10 +20,10 @@ print(f"HiRID = ",HiRID)
 
 if HiRID:
     suffix = "_HiRID"
-    filepath_stays = glob.glob(os.path.join(data_root, "Hirid", "2025-06-20", "stays", "*.parquet"))
+    filepath_stays = glob.glob(os.path.join(data_root, "Hirid", "2025-06-29", "stays", "*.parquet"))
 else:
     suffix = "_AmsterdamUMCDb"
-    filepath_stays = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-20", "stays", "*.parquet"))
+    filepath_stays = glob.glob(os.path.join(data_root, "AmsterdamUMCDb", "2025-06-29", "stays", "*.parquet"))
 
 dataframes_stay = [pd.read_parquet(file) for file in filepath_stays]
 stays_df = pd.concat(dataframes_stay, ignore_index= True)
