@@ -5,7 +5,7 @@ import json
 import socket
 
 HiRID = False
-AmsterdamUMCDb = False
+AmsterdamUMCDb = True
 Total = True
 
 # Load configuration
@@ -16,11 +16,11 @@ output_root = config[socket.gethostname()]["output_root"]
 
 if HiRID:
     suffix = "_HiRID"
-    stays_filtered = pd.read_csv(os.path.join(output_root, "HiRID_preprocessed", "stays_filtered_HiRID.csv"))
+    stays_filtered = pd.read_csv(os.path.join(output_root, "stays_filtered_HiRID.csv"))
     regular_df_UFperkg = pd.read_csv(os.path.join(output_root, "Final", "regular_UFperkg_HiRID.csv"))
 elif AmsterdamUMCDb: 
     suffix = "_AmsterdamUMCDb"
-    stays_filtered = pd.read_csv(os.path.join(output_root, "UMCDb_preprocessed", "stays_filtered_AmsterdamUMCDb.csv"))
+    stays_filtered = pd.read_csv(os.path.join(output_root, "stays_filtered_AmsterdamUMCDb.csv"))
     regular_df_UFperkg = pd.read_csv(os.path.join(output_root, "Final", "regular_UFperkg_AmsterdamUMCdb.csv"))
 elif Total:
     suffix = "_Total"
