@@ -67,6 +67,9 @@ stays_df_withweight.loc[((stays_df_withweight["height_at_admission"] < 100) & (s
 stays_df_withheight = stays_df_withweight[stays_df_withweight["height_at_admission"]>100]
 stays_df_filtered = stays_df_withheight
 
+#Add column BMI:
+stays_df_filtered["BMI"] = stays_df_filtered["weight_at_admission"] / ((stays_df_filtered["height_at_admission"]/100)**2)
+
 ############## Add a row with the source of the data / add the suffix to the patid to make mischmasch impossible
 if HiRID:
     stays_df_filtered["source"] = "HiRID"

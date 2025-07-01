@@ -48,8 +48,8 @@ def process_batch(startid, stopid, hirid=True):
         df_changes = df_changes.append(changes, ignore_index=True)
 
     df_crrt_stays.columns = ["patientid", "icu_stay_nr", "lenght_of_stay","age_at_admission","gender","emergency_admission", "height_at_admission", "weight_at_admission", "adm_apache_group", "apache_score", "outcome_icu_death", "outcome_death_28d", "session_lenght", "counter"]
-    df_regular.columns = ["patid", "Session_start_time", "session_lenght", "timepoint_label", "idx", "AbsDatetime", "sofa_total_24h", "dm_vent_inv_state", "dm_vent_niv_state", "vm2001", "vm2002", "vm2105", "vm2201", "vm5010", "vm5025", "dm_balancerate_h", "fluid_balance_pre_crrt"]
-    df_changes.columns = ["patid", "Session_start_time", "session_lenght", "timepoint_label", "idx", "AbsDatetime", "sofa_total_24h", "dm_vent_inv_state", "dm_vent_niv_state", "vm2001", "vm2002", "vm2105", "vm2201", "vm5010", "vm5025", "dm_balancerate_h", "fluid_balance_pre_crrt"]
+    df_regular.columns = ["patid", "Session_start_time", "session_lenght", "timepoint_label", "idx", "AbsDatetime", "sofa_total_24h", "dm_vent_inv_state", "dm_vent_niv_state", "vm2001", "vm2002", "vm2105", "vm2201", "vm5010", "vm5025", "dm_balancerate_h", "fluid_balance_pre_crrt", "dm_urineflow_h", "dm_oliguria_next_24h"]
+    df_changes.columns = ["patid", "Session_start_time", "session_lenght", "timepoint_label", "idx", "AbsDatetime", "sofa_total_24h", "dm_vent_inv_state", "dm_vent_niv_state", "vm2001", "vm2002", "vm2105", "vm2201", "vm5010", "vm5025", "dm_balancerate_h", "fluid_balance_pre_crrt", "dm_urineflow_h", "dm_oliguria_next_24h"]
 
     #make the three folders
     dir_stays = os.path.join(output_dir_results, "stays")

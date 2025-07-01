@@ -45,6 +45,15 @@ def record_values(idx, Session_start_time, session_lenght, df_crrt, patid, timep
     values.append(df_crrt.iloc[idx].dm_balancerate_h)
     values.append(fluid_balance_pre_crrt)
 
+    # Urine state: calculate total urine output over the next 24 hours (288 × 5min intervals)
+    end_idx = min(idx + 288, len(df_crrt))
+    urine_flow_h = df_crrt.iloc[idx:end_idx]["dm_urineflow_h"]  # ml/h, every 5 minutes
+    urine_volume_ml_24h = urine_flow_h.sum() / 12  # Convert to total ml over 24h (5min = 1/12h)
+
+    # Append flag: True if total urine < 100 ml (extreme oliguria)
+    values.append(df_crrt.iloc[idx].dm_urineflow_h)
+    values.append(urine_volume_ml_24h < 100)
+
     return values
 
 def process_patient(pid, hirid=True):
@@ -125,12 +134,11 @@ def process_patient(pid, hirid=True):
     df_crrt.loc[:,bf_cols] = df_crrt.loc[:,bf_cols].fillna(method='bfill', limit=24)
 
     if hirid:
-        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=4)
-        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,ff_cols].fillna(method='ffill')
+        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,'vm5010'].fillna(method='ffill', limit=4)
+        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,'vm5025'].fillna(method='ffill')
     else:
-        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,ff_cols].fillna(method='ffill', limit=24)
-        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,ff_cols].fillna(method='ffill')
-
+        df_crrt.loc[:,'vm5010'] = df_crrt.loc[:,'vm5010'].fillna(method='ffill', limit=24)
+        df_crrt.loc[:,'vm5025'] = df_crrt.loc[:,'vm5025'].fillna(method='ffill')
 
     if (len(stay_data) == 0):
         print("stay data empty")

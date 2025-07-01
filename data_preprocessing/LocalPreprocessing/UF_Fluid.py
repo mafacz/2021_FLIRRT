@@ -153,6 +153,25 @@ def calc_lab_increase(patgroup, variable, threshold, initial_window_min = 120):
     else:
         return 0
     
+def anuria(patgroup, variable, initial_window_min = 120):
+    """Categorises patients into groups according to onset of anuria: (2) Anuria from the start. (1) New onset of Anuria. (0) Never Anuria."""    
+    if patgroup.empty or variable not in patgroup:
+        return np.nan
+    
+    initial_window = patgroup[patgroup['session_length'] <= initial_window_min][variable].dropna()
+    if initial_window.empty:
+        reference_value = False 
+    else: 
+        reference_value = initial_window.iloc[0]
+        
+    if reference_value == True:
+        return 2
+    elif (patgroup[variable] == True).any():
+        return 1
+    else:
+        return 0
+    
+    
 #####################################################################################################################################################
 
 def process_dataset(dataset_name, stays_path, regular_path, changes_path, suffix):
@@ -228,6 +247,11 @@ def process_dataset(dataset_name, stays_path, regular_path, changes_path, suffix
 
     Lab_values_reg = pd.merge(Noradrenaline_df_reg, Lactate_df_reg, on="patid", how="outer")
 
+    ##Add Anuria 
+    Anuria_df_reg = regular_df_UFperkg.groupby("patid").apply(lambda x: anuria(x, variable="dm_oliguria_next_24h")).reset_index(name="Anuria_onset")
+    
+    Lab_values_reg = Lab_values_reg.merge(Anuria_df_reg, on="patid", how="outer")
+    
     return {
         "fluid_and_ultrafiltration_df": fluid_and_ultrafiltration_df,
         "Lab_values_reg": Lab_values_reg,
