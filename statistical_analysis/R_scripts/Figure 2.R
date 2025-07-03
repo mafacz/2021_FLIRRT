@@ -1,0 +1,283 @@
+library(tidyverse)
+library(patchwork)
+library(ggplot2)
+library(ggExtra)
+library(readr)
+library(glue)
+library(stringr)
+library(rlang)
+library(cowplot)
+
+################################################################################
+################################################################################
+## Plot Spline Plots for UF and FB
+
+function_filter_2SD <- function(dataframe, x_data) {
+  x_col <- enquo(x_data)
+  x_vals <- pull(dataframe, !!x_col)
+  x_mean <- mean(x_vals, na.rm = TRUE)
+  x_sd <- sd(x_vals, na.rm = TRUE)
+  
+  lower_limit <- x_mean - 2 * x_sd
+  upper_limit <- x_mean + 2 * x_sd
+  
+  dataframe %>%
+    filter((!!x_col) >= lower_limit,
+           (!!x_col) <= upper_limit)
+}
+
+function_spline_plot <- function(dataframe, x_data, y_data = outcome_death_28d, x_title, y_title = "28-day mortality",
+                                 wrap_width = 40, xlim_range = NULL, ylim_range = NULL) {
+  # Filter data first
+  filtered_df <- function_filter_2SD(dataframe, {{x_data}})
+  
+  plot <- filtered_df %>%
+    ggplot(aes(x = {{x_data}}, y = {{y_data}})) +
+    geom_smooth() +
+    geom_point(alpha = 0.0) +
+    labs(x = x_title, y = y_title)
+  
+  if (!is.null(xlim_range)) plot <- plot + xlim(xlim_range)
+  if (!is.null(ylim_range)) plot <- plot + ylim(ylim_range)
+  
+  return(plot)
+}
+
+marginal_histogram <- function(plot) {
+  ggMarginal(plot, type = "histogram", margins = c("x"))
+}
+
+function_spline_plot_dual <- function(dataframe, 
+                                      x_data, 
+                                      x_data2 = NULL, 
+                                      y_data = outcome_death_28d, 
+                                      x_title, 
+                                      y_title = "28-day mortality",
+                                      wrap_width = 40, 
+                                      xlim_range = NULL, 
+                                      ylim_range = NULL,
+                                      label1 = "x_data", 
+                                      label2 = "x_data2",
+                                      histo_lim = NULL) {
+  
+  # Filter both datasets using the same filter function
+  df1 <- function_filter_2SD(dataframe, {{x_data}}) %>%
+    mutate(x_value = {{x_data}}, group = label1)
+  
+  plot_data <- df1
+  
+  # If second x_data is provided
+  if (!is.null(enquo(x_data2))) {
+    df2 <- function_filter_2SD(dataframe, {{x_data2}}) %>%
+      mutate(x_value = {{x_data2}}, group = label2)
+    plot_data <- bind_rows(df1, df2)
+  }
+  
+  # Build plot
+  plot <- ggplot(plot_data, aes(x = x_value, y = {{y_data}}, color = group)) +
+    geom_smooth() +
+    geom_point(alpha = 0) +
+    labs(x = x_title, y = y_title, color = NULL) + 
+    theme(legend.position = "bottom")
+  
+  if (!is.null(xlim_range)) plot <- plot + xlim(xlim_range)
+  if (!is.null(ylim_range)) plot <- plot + ylim(ylim_range)
+  
+  # Histogram plot above
+  hist_plot <- ggplot(plot_data, aes(x = x_value, fill = group)) +
+    geom_histogram(alpha = 0.5, position = "identity", bins = 70) +
+    theme_minimal() +
+    theme(legend.position = "none",
+          axis.title.x = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank()) +
+    labs(y = "Count") +
+    ylim({{histo_lim}})
+  if (!is.null(xlim_range)) hist_plot <- hist_plot + xlim(xlim_range)
+  
+  # Combine plots
+  combined_plot <- hist_plot / plot + plot_layout(heights = c(1, 2))
+  return(combined_plot)
+  
+}
+
+################################################################################
+################################################################################
+## Load data
+
+file_prefix <- "C:\\Programming\\FLIRRT\\FLIRRT_preprocessed\\Final\\"
+
+UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_Total.csv")) %>% 
+  dplyr::select(patid, 
+                mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
+                fluidoverload, UF_AUC, unlimited_UF_increase_24h,
+                mean_dm_balancerate_h, mean_dm_balancerate_h_48h, mean_dm_balancerate_h_FBneg, median_dm_balancerate_h, Q1_dm_balancerate_h,
+                mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, mean_FB_bin, mean_FB_bin_48h,mean_FB_bin_FBneg, Q1_FB_bin)
+mortality <- read.csv(glue("{file_prefix}stays_fused_Total.csv"))
+combined <- inner_join(UF_and_FB, mortality, by="patid")
+patient_numbers <- nrow(combined)
+
+## Spline plots of UF: mean and 3.IQR
+xlim_UF = c(0,3.3)
+UF_plot <- function_spline_plot_dual(dataframe = combined, x_data = mean_vm5010_idx, x_data2 = Q3_vm5010_idx, 
+                                     x_title = "Net Ultrafiltration Rate (ml/kg/h)", label1 = "Mean", label2 = "Upper Quartile", 
+                                     xlim_range = xlim_UF, histo_lim = c(0,70))
+UF_plot <- UF_plot %>% wrap_elements()
+
+
+## Spline plots of FB: mean and 1.IQR
+xlim_FB = c(-500,200)
+FB_plot <- function_spline_plot_dual(dataframe = combined, x_data = mean_dm_balancerate_h, x_data2 = Q1_dm_balancerate_h, 
+                                     x_title = "Change of Fluid Balance (ml/h)", label1 = "Mean", label2 = "Upper Quartile", 
+                                     xlim_range = xlim_FB, histo_lim = c(0,70))
+FB_plot <- FB_plot %>% wrap_elements()
+
+## Combine to one plot
+Figure2ab <- (UF_plot | FB_plot)
+ggsave(plot = Figure2ab, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\Figure 2ab.png",
+       width = 8, height = 4)
+
+################################################################################
+################################################################################
+## Plot Heatmaps ##
+
+## Heatmap function ##
+
+plot_mortality_heatmap <- function(data, 
+                                   uf_bin_col = mean_UFnet_bin, 
+                                   fb_bin_col = mean_FB_bin,
+                                   uf_lower_thresh = 1.01,
+                                   uf_upper_thresh = 1.75,
+                                   fb_neutral_limit = 20.833,
+                                   fb_negative_limit = 62.5,
+                                   x_title = "Mean Change of Fluid Balance [ml/h]",
+                                   y_title = NULL) {
+  
+  data <- data %>% filter({{uf_bin_col}} != "NaN", {{fb_bin_col}} != "NaN") %>%
+    group_by({{ uf_bin_col }}, {{ fb_bin_col }}) %>%
+    summarise(mortality_rate = mean(outcome_death_28d, na.rm = TRUE),
+              n_patients = n(), .groups = "drop")
+  
+  # Add deaths column
+  data <- data %>%
+    mutate(deaths = mortality_rate * n_patients)
+  
+  # Rename bin variables for consistent plotting
+  data <- data %>%
+    rename(uf_bin = {{ uf_bin_col }}, fb_bin = {{ fb_bin_col }})
+  # Set bin orderings
+  uf_levels <- c(glue("high (>{uf_upper_thresh})"),
+                 glue("moderate ({uf_lower_thresh}-{uf_upper_thresh})"),
+                 glue("low (<{uf_lower_thresh})"),
+                 "zero", "NaN")
+  fb_levels <- c(glue("strong_negative (< -{fb_negative_limit})"),
+                 glue("light_negative (-{fb_negative_limit} - -{fb_neutral_limit})"),
+                 glue("neutral (-{fb_neutral_limit} - {fb_neutral_limit})"),
+                 glue("positive (>{fb_neutral_limit})"),
+                 "NaN")
+  data <- data %>%  mutate(uf_bin = factor(uf_bin, levels = uf_levels),
+                           fb_bin = factor(fb_bin, levels = fb_levels))
+  
+  # Row and column totals
+  row_totals <- data %>% group_by(uf_bin) %>%
+    summarise(n_patients = sum(n_patients),
+              deaths = sum(deaths),
+              mortality_rate = deaths / n_patients,
+              fb_bin = "Total", .groups = "drop")
+  col_totals <- data %>% group_by(fb_bin) %>%
+    summarise(n_patients = sum(n_patients),
+              deaths = sum(deaths),
+              mortality_rate = deaths / n_patients,
+              uf_bin = "Total", .groups = "drop")
+  grand_total <- tibble(uf_bin = "Total", fb_bin = "Total",
+                        n_patients = sum(data$n_patients),
+                        deaths = sum(data$deaths),
+                        mortality_rate = sum(data$deaths) / sum(data$n_patients))
+  
+  # Combine with original data
+  augmented <- bind_rows(data, row_totals, col_totals, grand_total)
+  
+  # Reapply factors with Total
+  augmented <- augmented %>%
+    mutate(uf_bin = factor(uf_bin, levels = c(uf_levels, "Total")),
+           fb_bin = factor(fb_bin, levels = c(fb_levels, "Total")))
+  
+  # Create heatmap
+  ggplot(augmented, aes(x = fb_bin, y = uf_bin, fill = mortality_rate)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = paste0("M: ", round(mortality_rate, 2), "\nN=", n_patients)),
+              color = "black", size = 3) +
+    scale_fill_gradient(low = "white", high = "#7570b3", name = "Mortality Rate", limits = c(0, 1)) +
+    scale_x_discrete(labels = c("strong_negative (< -62.5)" = "Strong Negative (<-62.5)",
+                                "light_negative (-62.5 - -20.833)" = "Light Negative (-62.5 - -20.84)",
+                                "neutral (-20.833 - 20.833)" = "Neutral (-20.83 - 20.83)",
+                                "positive (>20.833)" = "Positive (>20.83)")) + 
+    scale_y_discrete(labels = c("zero" = "Zero (0)", 
+                                "low (<1.01)" = "Low (0.01 - 1.0)",
+                                "moderate (1.01-1.75)" = "Moderate (1.01 - 1.75)",
+                                "high (>1.75)" = "High (>1.75)")) +
+    labs(x = x_title, y = y_title) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}
+
+####################################################################################
+####################################################################################
+# Function to generate heatmaps for a given database
+
+generate_all_heatmaps <- function(database = c("HiRID", "AmsterdamUMCDb", "Total"),
+                                  file_prefix = "C:/Programming/FLIRRT/FLIRRT_preprocessing/Final/",
+                                  plot_output = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\") {
+  
+  database <- match.arg(database)
+  
+  # Load data
+  UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_{database}.csv")) %>% 
+    dplyr::select(patid, 
+                  mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
+                  fluidoverload, UF_AUC, unlimited_UF_increase_24h,
+                  mean_dm_balancerate_h, mean_dm_balancerate_h_48h, median_dm_balancerate_h,
+                  mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, Q3_UFnet_bin,
+                  mean_FB_bin, mean_FB_bin_48h)
+  
+  mortality <- read.csv(glue("{file_prefix}stays_fused_{database}.csv")) %>%
+    dplyr::select(patid, outcome_death_28d)
+  
+  combined <- inner_join(UF_and_FB, mortality, by = "patid")
+  
+  # Generate
+  heatmap_mean <- plot_mortality_heatmap(combined,
+                                         uf_bin_col = mean_UFnet_bin,
+                                         fb_bin_col = mean_FB_bin,
+                                         y_title = glue("Mean Net Ultrafiltration Rate 
+                                                        (ml/kg/h)")
+  )
+  heatmap_Q3 <- plot_mortality_heatmap(combined,
+                                       uf_bin_col = Q3_UFnet_bin,
+                                       fb_bin_col = mean_FB_bin,
+                                       y_title = glue("Upper Quartile of Net Ultrafiltration Rate 
+                                                      (ml/kg/h)"))
+  results <- list(heatmap_mean, heatmap_Q3)
+  return(results)
+}
+
+heatmaps <- generate_all_heatmaps(database="Total")
+heatmap_mean <- heatmaps[[1]] +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+heatmap_Q3 <- heatmaps[[2]]
+Figure2c <- (heatmap_mean / heatmap_Q3)
+ggsave(plot = Figure2c, "Figure 2c.png", height = 12, width = 8)
+
+
+################################################################################
+## Combine Heatmap and Spline plots :)
+
+Figure2 <- Figure2ab / heatmap_mean / heatmap_Q3 + plot_layout(heights = c(1.5, 1, 1), widths = c(3,1,1))
+Figure2
+ggsave(plot = Figure2, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\Figure 2.png", height = 12, width = 8)
+
+
+################################################################################
+
