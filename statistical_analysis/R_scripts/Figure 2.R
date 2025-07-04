@@ -7,6 +7,31 @@ library(glue)
 library(stringr)
 library(rlang)
 library(cowplot)
+library(jsonlite)
+
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+file_prefix <- file.path(output_root, "Final")
 
 ################################################################################
 ################################################################################
@@ -105,15 +130,13 @@ function_spline_plot_dual <- function(dataframe,
 ################################################################################
 ## Load data
 
-file_prefix <- "C:\\Programming\\FLIRRT\\FLIRRT_preprocessed\\Final\\"
-
-UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_Total.csv")) %>% 
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) %>% 
   dplyr::select(patid, 
                 mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
                 fluidoverload, UF_AUC, unlimited_UF_increase_24h,
                 mean_dm_balancerate_h, mean_dm_balancerate_h_48h, mean_dm_balancerate_h_FBneg, median_dm_balancerate_h, Q1_dm_balancerate_h,
                 mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, mean_FB_bin, mean_FB_bin_48h,mean_FB_bin_FBneg, Q1_FB_bin)
-mortality <- read.csv(glue("{file_prefix}stays_fused_Total.csv"))
+mortality <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
 combined <- inner_join(UF_and_FB, mortality, by="patid")
 patient_numbers <- nrow(combined)
 
@@ -134,7 +157,7 @@ FB_plot <- FB_plot %>% wrap_elements()
 
 ## Combine to one plot
 Figure2ab <- (UF_plot | FB_plot)
-ggsave(plot = Figure2ab, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\Figure 2ab.png",
+ggsave(plot = Figure2ab, filename = glue("{R_output_root}/Figure 2ab.png"),
        width = 8, height = 4)
 
 ################################################################################
@@ -225,14 +248,12 @@ plot_mortality_heatmap <- function(data,
 ####################################################################################
 # Function to generate heatmaps for a given database
 
-generate_all_heatmaps <- function(database = c("HiRID", "AmsterdamUMCDb", "Total"),
-                                  file_prefix = "C:/Programming/FLIRRT/FLIRRT_preprocessing/Final/",
-                                  plot_output = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\") {
+generate_all_heatmaps <- function(database = c("HiRID", "AmsterdamUMCDb", "Total")) {
   
   database <- match.arg(database)
   
   # Load data
-  UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_{database}.csv")) %>% 
+  UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_{database}.csv")) %>% 
     dplyr::select(patid, 
                   mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
                   fluidoverload, UF_AUC, unlimited_UF_increase_24h,
@@ -240,7 +261,7 @@ generate_all_heatmaps <- function(database = c("HiRID", "AmsterdamUMCDb", "Total
                   mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, Q3_UFnet_bin,
                   mean_FB_bin, mean_FB_bin_48h)
   
-  mortality <- read.csv(glue("{file_prefix}stays_fused_{database}.csv")) %>%
+  mortality <- read.csv(glue("{file_prefix}/stays_fused_{database}.csv")) %>%
     dplyr::select(patid, outcome_death_28d)
   
   combined <- inner_join(UF_and_FB, mortality, by = "patid")
@@ -268,7 +289,7 @@ heatmap_mean <- heatmaps[[1]] +
         axis.ticks.x = element_blank())
 heatmap_Q3 <- heatmaps[[2]]
 Figure2c <- (heatmap_mean / heatmap_Q3)
-ggsave(plot = Figure2c, "Figure 2c.png", height = 12, width = 8)
+ggsave(plot = Figure2c, glue("{R_output_root}/Figure 2c.png"), height = 12, width = 8)
 
 
 ################################################################################
@@ -276,7 +297,7 @@ ggsave(plot = Figure2c, "Figure 2c.png", height = 12, width = 8)
 
 Figure2 <- Figure2ab / heatmap_mean / heatmap_Q3 + plot_layout(heights = c(1.5, 1, 1), widths = c(3,1,1))
 Figure2
-ggsave(plot = Figure2, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\Figure 2.png", height = 12, width = 8)
+ggsave(plot = Figure2, filename = glue("{R_output_root}/Figure 2.png"), height = 12, width = 8)
 
 
 ################################################################################

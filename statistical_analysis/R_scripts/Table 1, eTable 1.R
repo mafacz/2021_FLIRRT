@@ -4,11 +4,38 @@ library(gtsummary)
 library(flextable)
 library(officer)
 library(glue)
+library(jsonlite)
 
-stay_info <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\stays_fused_Total.csv")
-regular <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_Total.csv")
-lab_values <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Lab_values_reg_Total.csv")
-apache_groups <- read.csv("C:/Programming/sources/apache_group.csv")
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+
+#################################################################################
+file_prefix <- file.path(output_root, "Final")
+
+stay_info <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
+regular <- read.csv(glue("{file_prefix}/regular_UFperkg_Total.csv"))
+lab_values <- read.csv(glue("{file_prefix}/Lab_values_reg_Total.csv"))
+apache_groups <- read.csv(glue("{data_root}/apache_group.csv"))
 
 first_non_na_or_nan <- function(x) {
   vals <- x[!is.na(x)]
@@ -102,11 +129,11 @@ Table1 <- data_tableone %>% dplyr::select(source,
 Table1
 
 Table1_gt <- as_gt(Table1)
-gtsave(data = Table1_gt, path = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\", filename = "Table_1.docx")
+gtsave(data = Table1_gt, path = glue("{R_output_root}"), filename = "Table_1.docx")
 
 ft <- as_flex_table(Table1)
 doc <- read_docx() %>%  body_add_flextable(value = ft)
-#print(doc, target = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\Table_1_2.docx")
+#print(doc, target = glue("{R_output_root}"/Table_1_2.docx"))
 
 
 #################################################################################
@@ -154,4 +181,4 @@ eTable1 <- data_e_tableone %>% dplyr::select(mean_UFnet_bin,
 eTable1
 
 eTable1_gt <- as_gt(eTable1)
-gtsave(eTable1_gt, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eTable_1.docx")
+gtsave(eTable1_gt, filename = glue("{R_output_root}/eTable_1.docx"))

@@ -5,19 +5,42 @@ library(forcats)
 library(glue)
 library(forestmodel)
 library(labelled)
+library(jsonlite)
 
 ################################################################################
 
-file_prefix <- "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\"
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
 
-UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_Total.csv")) %>% 
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+
+#################################################################################
+file_prefix <- file.path(output_root, "Final")
+
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) %>% 
   dplyr::select(patid, 
                 mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
                 UF_AUC, unlimited_UF_increase_24h,
                 mean_dm_balancerate_h, mean_dm_balancerate_h_48h, median_dm_balancerate_h,
                 mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, Q3_UFnet_bin,
                 mean_FB_bin, mean_FB_bin_48h, mean_FB_bin_FBneg, Q1_FB_bin)
-mortality <- read.csv(glue("{file_prefix}stays_fused_Total.csv")) 
+mortality <- read.csv(glue("{file_prefix}/stays_fused_Total.csv")) 
 combined <- inner_join(UF_and_FB, mortality, by="patid")
 
 ################################################################################
@@ -215,21 +238,21 @@ step3_Q3_high <- forest_model(step3_model) + ggtitle("", "Reference: High NUF ra
 ###############################################################################
 
 #Step 1 for all reference groups (Low, Moderate, High) once for mean_UFnet_bin (5a), once for Q3_UFnet_bin (5b)
-ggsave(plot= step1_mean_low / step1_mean_moderate / step1_mean_high, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 5a.png",
+ggsave(plot= step1_mean_low / step1_mean_moderate / step1_mean_high, filename = glue("{R_output_root}/eFigure 5a.png"),
        width = 11, height = 15)
-ggsave(plot= step1_Q3_low / step1_Q3_moderate / step1_Q3_high, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 5b.png",
+ggsave(plot= step1_Q3_low / step1_Q3_moderate / step1_Q3_high, filename = glue("{R_output_root}/eFigure 5b.png"),
        width = 11, height = 15)
 
 ###############################################################################
 
 #Step 2 
-ggsave(plot= step2, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 5c.png",
+ggsave(plot= step2, filename = glue("{R_output_root}/eFigure 5c.png"),
        width = 10, height = 5)
 
 ###############################################################################
 
 # Step 3 for all reference groups (Low, Moderate, High) once for mean_UFnet_bin (5d), once for Q3_UFnet_bin (5e)
-ggsave(plot= step3_mean_low / step3_mean_moderate / step3_mean_high, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 5d.png",
+ggsave(plot= step3_mean_low / step3_mean_moderate / step3_mean_high, filename = glue("{R_output_root}/eFigure 5d.png"),
        width = 11, height = 15)
-ggsave(plot= step3_Q3_low / step3_Q3_moderate / step3_Q3_high, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 5e.png",
+ggsave(plot= step3_Q3_low / step3_Q3_moderate / step3_Q3_high, filename = glue("{R_output_root}/eFigure 5e.png"),
        width = 11, height = 15)

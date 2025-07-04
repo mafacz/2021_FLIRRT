@@ -9,18 +9,42 @@ library(tidyr)
 library(stringr)
 library(gt)
 library(broom)
+library(jsonlite)
 
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+
+#################################################################################
+file_prefix <- file.path(output_root, "Final")
 
 # Load data
-UFnet_FBchange <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_Total.csv") %>% 
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) %>% 
   dplyr::select(patid, 
                 mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
                 UF_AUC, unlimited_UF_increase_24h,
                 mean_dm_balancerate_h, mean_dm_balancerate_h_48h, mean_dm_balancerate_h_FBneg, median_dm_balancerate_h, Q3_dm_balancerate_h,
                 mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, Q3_UFnet_bin, mean_FB_bin, mean_FB_bin_48h, mean_FB_bin_FBneg, Q1_FB_bin)
-
-covariates <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\stays_fused_Total.csv")
-
+covariates <- read.csv(glue("{file_prefix}/stays_fused_Total.csv")) 
 combined <- inner_join(UFnet_FBchange, covariates, by = "patid")
 
 # Thresholds
@@ -196,7 +220,7 @@ tables_mean <- summarize_mediation_results(results_mean)
 mean_mediation_table_exact <- tables_mean$exact
 
 mean_mediation_table_exponentiated <- tables_mean$exp
-gtsave(mean_mediation_table_exponentiated, "eTable_3a.docx", path = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\")
+gtsave(mean_mediation_table_exponentiated, "eTable_3a.docx", path = glue("{R_output_root}"))
 
 ##########
 # Run mediation comparisons for q3
@@ -216,4 +240,4 @@ tables_Q3 <- summarize_mediation_results(results_Q3)
 Q3_mediation_table_exact <- tables_Q3$exact
 
 Q3_mediation_table_exponentiated <- tables_Q3$exp
-gtsave(Q3_mediation_table_exponentiated, "eTable_3b.docx", path = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\")
+gtsave(Q3_mediation_table_exponentiated, "eTable_3b.docx", path = glue("{R_output_root}"))

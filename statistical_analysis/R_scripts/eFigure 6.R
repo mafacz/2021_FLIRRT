@@ -6,12 +6,37 @@ library(randomForest)
 library(patchwork)
 library(ggplot2)
 library(plotly)
+library(jsonlite)
+
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+file_prefix <- file.path(output_root, "Final")
 
 ## Load data
-UF_and_FB <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_Total.csv")
-covariates <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\stays_fused_Total.csv")
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) 
+covariates <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
 combined <- inner_join(UF_and_FB, covariates, by="patid")
-combined <- combined %>% filter(!is.na(apache_score), !is.na(invasive_ventilation))
+combined <- combined %>% filter(!is.na(apache_score))
 
 ################################################################################
 
@@ -52,7 +77,7 @@ p_fb_neg <- autoplot(pdp_fb_neg,
                      xlab = "Mean Change of Fluid Balance when < 0 (ml/h)",
                      ylab = "Predicted probability of 28-day death")  + coord_cartesian(xlim = c(-1000,600), ylim = c(0, 1))
 combined_fb_partial <- p_fb / p_fb_q1/ p_fb_48 / p_fb_neg
-ggsave(filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 6b.png",
+ggsave(filename = glue("{R_output_root}/eFigure 6b.png"),
        plot = combined_fb_partial, width = 8, height = 12, dpi = 300)
 
 ## For Ultrafiltration Rate (different summary statistics, rf model with mean FB change)
@@ -91,7 +116,7 @@ p_uf_pos <- autoplot(pdp_uf_pos,
                      xlab = "Mean net Ultrafiltration Rate when > 0 (ml/kg/h)",
                      ylab = "Predicted probability of 28-day death") + coord_cartesian(xlim = c(0,5), ylim = c(0, 1))
 # Save the plot using ggsave
-ggsave(filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 6a.png",
+ggsave(filename = glue("{R_output_root}/eFigure 6a.png"),
        plot = (p_uf / p_uf_q3/ p_uf_48 / p_uf_pos), width = 8, height = 12, dpi = 300)
 
 
@@ -110,7 +135,7 @@ ggplot(pdp_2d, aes(x = mean_vm5010_idx, y = mean_dm_balancerate_h)) +
   labs(x = "Mean UF rate (ml/kg/h)",
        y = "Mean fluid balance rate (ml/h)") +
   theme_minimal()
-ggsave(filename="C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 6c_2D Partial Dependence Plot.png",
+ggsave(filename = glue("{R_output_root}/eFigure 6c_2D Partial Dependence Plot.png"),
        width = 6, height = 6, bg="white")
 
 
@@ -133,4 +158,4 @@ pdp_3D <- plot_ly(x = sort(unique(pdp_2d_copy$UF)),
               yaxis = list(title = "Mean Fluid Balance Change (ml/h)"),
               zaxis = list(title = "Predicted 28-day mortality")
             ))
-htmlwidgets::saveWidget(pdp_3D, "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 6d_3D_PDP_plot.html")
+htmlwidgets::saveWidget(pdp_3D, glue("{R_output_root}/eFigure 6d_3D_PDP_plot.html"))

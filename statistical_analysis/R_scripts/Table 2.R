@@ -7,15 +7,43 @@ library(gtsummary)
 library(flextable)
 library(officer)
 library(glue)
+library(jsonlite)
+
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+
+#################################################################################
+file_prefix <- file.path(output_root, "Final")
 
 ## Load data
 
-stay_info <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\stays_fused_Total.csv")
-regular <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\regular_UFperkg_Total.csv")
-changes <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\changes_UFperkg_Total.csv")
-UF_and_FB <- read.csv("C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\Fluid_and_Ultrafiltration_Total.csv")
+stay_info <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
+regular <- read.csv(glue("{file_prefix}/regular_UFperkg_Total.csv"))
+lab_values <- read.csv(glue("{file_prefix}/Lab_values_reg_Total.csv"))
+changes <- read.csv(glue("{file_prefix}/changes_UFperkg_Total.csv"))
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv"))
 
-RRT_type <- read.csv("C:/Programming/sources/RRT_type.csv") %>% filter(Variable %in% c(2,3,4))
+RRT_type <- read.csv(glue("{data_root}/RRT_type.csv")) %>% filter(Variable %in% c(2,3,4))
 
 ##################################################################################################
 ## Create a Table to describe Ultrafiltration ##
@@ -189,4 +217,4 @@ Table2_gt <- as_gt(Table2) %>%
     columns = label,rows = label %in% c("Negative Fluid Balance", "Negative Fluid Change"))) %>% 
   tab_footnote(footnote= "Positive >= 0",locations = cells_body(
       columns = label,rows = label %in% c("Positive Fluid Balance", "Positive Fluid Change")))
-gtsave(Table2_gt, filename= "Table_2.docx", path = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\")
+gtsave(Table2_gt, filename= "Table_2.docx", path = glue("{R_output_root}"))

@@ -5,7 +5,34 @@ library(ggplot2)
 library(dplyr)
 library(glue)
 library(patchwork)
+library(jsonlite)
 
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+file_prefix <- file.path(output_root, "Final")
+
+#################################################################################
+# functions
 ################################################################################
 
 # Filter outliers to ±2 SD
@@ -48,11 +75,10 @@ histogram_function_summary <- function(database = c("HiRID", "AmsterdamUMCDb", "
                                        xlim_fb = NULL, xlim_fb_pre = NULL) {
   database <- match.arg(database)
   
-  file_prefix <- glue("C:/Programming/FLIRRT/FLIRRT_preprocessing/Final/")
-  
+  file_prefix <- file_prefix <- file.path(output_root, "Final")
   suffix <- database
-  stay_info <- read.csv(glue("{file_prefix}stays_fused_{database}.csv"))
-  regular <- read.csv(glue("{file_prefix}regular_UFperkg_{database}.csv"))
+  stay_info <- read.csv(glue("{file_prefix}/stays_fused_{database}.csv"))
+  regular <- read.csv(glue("{file_prefix}/regular_UFperkg_{database}.csv"))
   
   # Outlier-filtered data
   uf_clean <- filter_outliers(regular, "vm5010")
@@ -97,14 +123,13 @@ histogram_function_summary <- function(database = c("HiRID", "AmsterdamUMCDb", "
 ################################################################################
 
 # Calculate x-limits for harmonized plots
-file_prefix <- "C:/Programming/FLIRRT/FLIRRT_preprocessing/Final/"
 regular_files <- list(
-  HiRID = paste0(file_prefix, "regular_UFperkg_HiRID.csv"),
-  AmsterdamUMCDb = paste0(file_prefix, "regular_UFperkg_AmsterdamUMCDb.csv")
+  HiRID = paste0(file_prefix, "/regular_UFperkg_HiRID.csv"),
+  AmsterdamUMCDb = paste0(file_prefix, "/regular_UFperkg_AmsterdamUMCDb.csv")
 )
 stay_info_files <- list(
-  HiRID = paste0(file_prefix, "stays_fused_HiRID.csv"),
-  AmsterdamUMCDb = paste0(file_prefix, "stays_fused_AmsterdamUMCDb.csv")
+  HiRID = paste0(file_prefix, "/stays_fused_HiRID.csv"),
+  AmsterdamUMCDb = paste0(file_prefix, "/stays_fused_AmsterdamUMCDb.csv")
 )
 
 uf_xlims <- compute_shared_xlim(regular_files, c("vm5010", "vm5010_idx"))
@@ -132,16 +157,16 @@ plots_Amsterdam <- histogram_function_summary("AmsterdamUMCDb",
 # Plot combined UF
 combined_UF_plot <- (plots_Total$UF_plot / plots_HiRID$UF_plot / plots_Amsterdam$UF_plot) 
 combined_UF_plot
-ggsave(filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 1a.png",
+ggsave(filename = glue("{R_output_root}/eFigure 1a.png"),
        width = 6, height = 8)
 
 # Plot combined Fluid Balance
 combined_FB_plot <- (plots_Total$FB_plot / plots_HiRID$FB_plot / plots_Amsterdam$FB_plot)
 combined_FB_plot
-ggsave(filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 1b.png",
+ggsave(filename = glue("{R_output_root}/eFigure 1b.png"),
        width = 6, height = 8)
 
 eFigure1 <- (plots_Total$UF_plot / plots_HiRID$UF_plot / plots_Amsterdam$UF_plot/plots_Total$FB_plot / plots_HiRID$FB_plot / plots_Amsterdam$FB_plot) 
-ggsave(filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 1.png",
+ggsave(filename = glue("{R_output_root}/eFigure 1.png"),
        width = 8, height = 12)
 

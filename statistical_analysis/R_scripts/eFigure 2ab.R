@@ -7,6 +7,40 @@ library(glue)
 library(stringr)
 library(rlang)
 library(cowplot)
+#######################################
+#######################################
+
+library(tidyverse)
+library(gt)
+library(gtsummary)
+library(flextable)
+library(officer)
+library(glue)
+library(jsonlite)
+
+################################################################################
+
+# Get hostname
+hostname <- tolower(Sys.info()[["nodename"]])
+
+# Determine script directory
+if (requireNamespace("rstudioapi", quietly = TRUE) && rstudioapi::isAvailable()) {
+  script_path <- rstudioapi::getSourceEditorContext()$path
+} else {
+  stop("Script path could not be determined. Please set the path manually.")
+}
+script_dir <- dirname(normalizePath(script_path))
+
+# Construct path to config file (two directories up)
+config_path <- file.path(script_dir, "..", "..", "path.config")
+config_path <- normalizePath(config_path)
+# Read config
+config <- fromJSON(config_path)
+# Access data and output root for current hostname
+data_root <- config[[hostname]][["data_root"]]
+output_root <- config[[hostname]][["output_root"]]
+R_output_root <- config[[hostname]][["R_output_root"]]
+file_prefix <- file.path(output_root, "Final")
 
 ################################################################################
 ################################################################################
@@ -359,16 +393,14 @@ function_spline_plot_groups <- function(dataframe,
 
 ## Load data
 
-file_prefix <- "C:\\Programming\\FLIRRT\\FLIRRT_preprocessing\\Final\\"
-
-UF_and_FB <- read.csv(glue("{file_prefix}Fluid_and_Ultrafiltration_Total.csv")) %>% 
+UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) %>% 
   dplyr::select(patid,
                 mean_vm5010_idx, mean_vm5010_idx_48h, mean_vm5010_idx_UFpos, Q3_vm5010_idx,
                 UF_AUC, unlimited_UF_increase_24h,
                 mean_dm_balancerate_h, mean_dm_balancerate_h_48h, mean_dm_balancerate_h_FBneg, median_dm_balancerate_h, Q1_dm_balancerate_h,
                 mean_UFnet_bin, mean_UFnet_bin_48h, mean_UFnet_bin_UFpos, mean_FB_bin, mean_FB_bin_48h,mean_FB_bin_FBneg, Q1_FB_bin)
-Lab_values <- read.csv(glue("{file_prefix}Lab_values_reg_Total.csv")) %>% dplyr::select(patid, Noradrenalin_increase_0.1_mcgkgmin,Lactate_increase_2,Lactate_increase_4,Anuria_onset)
-stay_info <- read.csv(glue("{file_prefix}stays_fused_Total.csv"))
+Lab_values <- read.csv(glue("{file_prefix}/Lab_values_reg_Total.csv")) %>% dplyr::select(patid, Noradrenalin_increase_0.1_mcgkgmin,Lactate_increase_2,Lactate_increase_4,Anuria_onset)
+stay_info <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
 combined <- inner_join(UF_and_FB, stay_info, by="patid")
 combined <- inner_join(combined, Lab_values, by="patid")
 
@@ -393,7 +425,7 @@ FB_plot <- FB_plot %>% wrap_elements()
 ## Combine to one plot
 eFigure2a <- (UF_plot | FB_plot)
 eFigure2a
-ggsave(plot = eFigure2a, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2a.png",
+ggsave(plot = eFigure2a, filename = glue("{R_output_root}/eFigure 2a.png"),
        width = 8, height = 4)
 
 #############################################
@@ -412,7 +444,7 @@ Mean_FB_database <- function_spline_plot_three_groups(dataframe = combined, x_va
 Mean_FB_database
 
 combined_database <- Mean_UF_database %>% wrap_elements() | Mean_FB_database %>% wrap_elements()
-ggsave(plot=combined_database, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_database.png",
+ggsave(plot=combined_database, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_database.png"),
        width = 8, height = 6)
 
 #############################################
@@ -431,7 +463,7 @@ Mean_FB_Sex <- function_spline_plot_three_groups(dataframe = combined, x_var = m
 Mean_FB_Sex
 
 combined_sex <- Mean_UF_Sex %>% wrap_elements() | Mean_FB_Sex %>% wrap_elements()
-ggsave(plot=combined_sex, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_sex.png",
+ggsave(plot=combined_sex, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_sex.png"),
        width = 8, height = 6)
 
 #############################################
@@ -450,7 +482,7 @@ Mean_FB_FO <- function_spline_plot_three_groups(dataframe = combined, x_var = me
 Mean_FB_FO
 
 combined_FO <- Mean_UF_FO %>% wrap_elements() | Mean_FB_FO %>% wrap_elements()
-ggsave(plot=combined_FO, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_fluidoverload10.png",
+ggsave(plot=combined_FO, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_fluidoverload10.png"),
        width = 8, height = 6)
 
 #############################################
@@ -474,7 +506,7 @@ Mean_FB_NOR <- function_spline_plot_groups(dataframe = Noradre_df, x_var = mean_
 Mean_FB_NOR
 
 combined_NOR <- Mean_UF_NOR %>% wrap_elements() | Mean_FB_NOR %>% wrap_elements()
-ggsave(plot=combined_NOR, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_NOR_0.1.png",
+ggsave(plot=combined_NOR, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_NOR_0.1.png"),
        width = 8, height = 6)
 
 
@@ -524,10 +556,10 @@ Mean_FB_Lac_4 <- function_spline_plot_groups(dataframe = Lactate_df, x_var = mea
 Mean_FB_Lac_4
 
 combined_Lac_2 <- Mean_UF_Lac_2 %>% wrap_elements() | Mean_FB_Lac_2 %>% wrap_elements()
-ggsave(plot=combined_Lac_2, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_Lac_2.png",
+ggsave(plot=combined_Lac_2, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Lac_2.png"),
        width = 8, height = 6)
 combined_Lac_4 <- Mean_UF_Lac_4 %>% wrap_elements() | Mean_FB_Lac_4 %>% wrap_elements()
-ggsave(plot=combined_Lac_4, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_Lac_4.png",
+ggsave(plot=combined_Lac_4, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Lac_4.png"),
        width = 8, height = 6)
 
 ##############################################
@@ -549,7 +581,7 @@ Mean_FB_Anuria <- function_spline_plot_groups(dataframe = Anuria_df, x_var = mea
 Mean_FB_Anuria
 
 combined_Anuria <- Mean_UF_Anuria %>% wrap_elements() | Mean_FB_Anuria %>% wrap_elements()
-ggsave(plot=combined_Anuria, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_Anuria.png",
+ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Anuria.png"),
        width = 8, height = 6)
 
 ##############################################
@@ -574,7 +606,7 @@ AUC_plot_FO <- function_spline_plot_three_groups(dataframe = combined, x_var = U
 AUC_plot_FO
 
 AUC_combined <- AUC_plot_database | AUC_plot_Sex | AUC_plot_FO
-ggsave(plot=AUC_combined, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_AUC.png", 
+ggsave(plot=AUC_combined, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC.png"), 
        width = 15, height = 6)
 
 AUC_plot_NOR <- function_spline_plot_three_groups(dataframe = Noradre_df, x_var = UF_AUC, group_var = Noradrenalin_increase_0.1_mcgkgmin, y_var = outcome_death_28d,
@@ -600,7 +632,7 @@ AUC_plot_Lac4
 
 
 AUC_combined_Lab <- AUC_plot_NOR | AUC_plot_Lac2 | AUC_plot_Lac4
-ggsave(plot=AUC_combined_Lab, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_AUC_Labvalues.png", 
+ggsave(plot=AUC_combined_Lab, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC_Labvalues.png"), 
        width = 15, height = 6)
 
 AUC_plot_anuria <- function_spline_plot_three_groups(dataframe = Anuria_df, x_var = UF_AUC, group_var = Anuria_onset, y_var = outcome_death_28d,
@@ -609,6 +641,6 @@ AUC_plot_anuria <- function_spline_plot_three_groups(dataframe = Anuria_df, x_va
                                                      legend_labels = c("Overall", "Anuria during CRRT", "No new anuria onset during CRRT"),
                                                      legend_position = "bottom", bins = 70)
 AUC_plot_anuria
-ggsave(plot=AUC_plot_anuria, filename = "C:\\Programming\\FLIRRT\\FLIRRT_Paper\\eFigure 2b\\eFigure 2b_AUC_Anuria.png", 
+ggsave(plot=AUC_plot_anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC_Anuria.png"), 
        width = 5, height = 6)
 #################################################################################
