@@ -52,16 +52,14 @@ data_tableone <- left_join(data_tableone, lab_values_at_start, by="patid")
 
 data_tableone$length_of_stay <- data_tableone$length_of_stay / (24*60*60) #change ICU LOS from seconds to days
 
-data_tableone <- data_tableone %>% mutate(fluidoverload_category = ifelse(fluidoverload <0, "negative FB", "positive FB"))
-
+data_tableone <- data_tableone %>% mutate(positive_fluidoverload = ifelse(fluidoverload >0, 1, 0),
+                                          is_female = ifelse(gender == "F", 1, 0),
+                                          icu_death = ifelse(outcome_icu_death == "True",1,0),
+                                          death_28d = ifelse(outcome_death_28d == 1, 1,0))
 #convert to labeled categories 
-data_tableone$gender <- factor(data_tableone$gender, levels = c("M", "F"), labels = c("Male", "Female"))
 data_tableone$emergency_admission <- factor(data_tableone$emergency_admission, levels = c("True", "False"), labels = c("Yes", "No"))
 data_tableone$adm_apache_group <- factor(data_tableone$adm_apache_group, levels = apache_groups$metavariable, labels = apache_groups$groupname_FLIRRT)
-data_tableone$outcome_icu_death <- factor(data_tableone$outcome_icu_death, levels = c("True", "False"), labels = c("Dead", "Alive"))
-data_tableone$outcome_death_28d <- factor(data_tableone$outcome_death_28d, levels = c(1,0), labels = c("Dead", "Alive"))
 data_tableone$source <- factor(data_tableone$source, levels = c("AmsterdamUMCDb", "HiRID"), labels = c("Amsterdam UMC", "HiRID"))
-data_tableone$fluidoverload_category <- factor(data_tableone$fluidoverload_category, levels = c("negative FB", "positive FB"), labels = c("Negative Fluid Balance", "Positive Fluid Balance"))
 data_tableone$fluidoverload_5 <- factor(data_tableone$fluidoverload_5, levels = c(1,0), labels = c("Yes", "No"))
 data_tableone$fluidoverload_7 <- factor(data_tableone$fluidoverload_7, levels = c(1,0), labels = c("Yes", "No"))
 data_tableone$fluidoverload_10 <- factor(data_tableone$fluidoverload_10, levels = c(1,0), labels = c("Yes", "No"))
@@ -69,7 +67,7 @@ data_tableone$SOFA_score <- as.integer(data_tableone$SOFA_score)
 data_tableone$invasive_ventilation <- factor(data_tableone$invasive_ventilation, levels = c(1,0), labels = c("Yes", "No"))
 
 labelestolabel <- list(
-  gender = "Sex",
+  is_female = "Female Sex",
   age_at_admission = "Age (years)",
   height_at_admission = "Height (cm)",
   weight_at_admission = "Weight (kg)",
@@ -80,10 +78,10 @@ labelestolabel <- list(
   SOFA_score = "SOFA Score at start of CRRT",
   invasive_ventilation = "Invasive Ventilation at Start of CRRT",
   length_of_stay = "ICU Length of Stay (days)",
-  outcome_icu_death = "ICU Outcome",
-  outcome_death_28d = "28-day Outcome",
+  icu_death = "ICU Death",
+  death_28d = "28-day Death",
   fluidoverload = "Fluid Balance before CRRT (L)",
-  fluidoverload_category = "Fluid Balance before CRRT:",
+  positive_fluidoverload = "Positive Fluid Balance before CRRT:",
   fluidoverload_5 = "Fluid Overload ≥ 5% (kg body weight)",
   fluidoverload_7 = "Fluid Overload ≥ 7% (kg body weight)",
   fluidoverload_10 = "Fluid Overload ≥ 10% (kg body weight)",
@@ -93,11 +91,11 @@ labelestolabel <- list(
 
 # Build table
 Table1 <- data_tableone %>% dplyr::select(source,
-                                          gender,age_at_admission,height_at_admission,weight_at_admission,BMI,
+                                          is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                           emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                           vm2201_idx_first, vm2105_first,
-                                          fluidoverload, fluidoverload_category, fluidoverload_5, fluidoverload_7, fluidoverload_10,
-                                          length_of_stay, outcome_icu_death, outcome_death_28d) %>% 
+                                          fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
+                                          length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
     by = source,
     label = labelestolabel,
@@ -146,11 +144,11 @@ data_e_tableone <- inner_join(data_tableone, UF_and_FB %>% dplyr::select(patid, 
 data_e_tableone$mean_UFnet_bin <- factor(data_e_tableone$mean_UFnet_bin, levels = c("high (>1.75)", "moderate (1.01-1.75)", "low (<1.01)", "zero"), labels = c("high (>1.75)", "moderate (1.01-1.75)", "low (0.01-1.0)", "zero (0)"))
 
 eTable1 <- data_e_tableone %>% dplyr::select(mean_UFnet_bin,
-                                           gender,age_at_admission,height_at_admission,weight_at_admission,BMI,
+                                           is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                            emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                            vm2201_idx_first, vm2105_first,
-                                           fluidoverload, fluidoverload_category, fluidoverload_5, fluidoverload_7, fluidoverload_10,
-                                           length_of_stay, outcome_icu_death, outcome_death_28d) %>% 
+                                           fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
+                                           length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
     by = mean_UFnet_bin,
     label = labelestolabel,

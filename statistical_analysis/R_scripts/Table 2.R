@@ -82,8 +82,8 @@ data_tabletwo_a$mean_UFnet_bin <- factor(data_tabletwo_a$mean_UFnet_bin, levels 
 labelstolabel2a <- list(
   RRT_type_final = "Type of Continuous Renal Replacement Therapy",
   session_length_d = "Duration of Continuous Renal Replacement Therapy (days)",
-  start_of_CRRT_d = "Duration until Start of Continuous Renal Replacement Therapy from Intensive Care Unit Admission (days)",
-  time_until_UF_h = "Duration from Start of Continuous Renal Replacement Therapy until Ultrafiltration (hours)",
+  start_of_CRRT_d = "Time until Start of Continuous Renal Replacement Therapy from Intensive Care Unit Admission (days)",
+  time_until_UF_h = "Time from Start of Continuous Renal Replacement Therapy until Ultrafiltration (hours)",
   percentage_UF_0 = "Percentage of Time with Ultrafiltration = 0",
   only_UF_0 = "Patients without Ultrafiltration > 0 during whole Session of Continuous Renal Replacement Therapy",
   mean_vm5010_idx = "Mean Ultrafiltration rate (ml/kg/h)",
@@ -160,21 +160,19 @@ time_FB <- regular %>% group_by(patid) %>%
 
 data_tabletwo_b <- inner_join(Fluid, time_FB, by="patid")
 data_tabletwo_b$source <- factor(data_tabletwo_b$source, levels = c("AmsterdamUMCDb", "HiRID"), labels = c("Amsterdam UMC", "HiRID"))
-data_tabletwo_b$FB_category <- factor(data_tabletwo_b$FB_category, levels = c("negative FB change", "positive FB change"), labels = c("Negative Fluid Change", "Positive Fluid Change"))
-data_tabletwo_b$FB_category_at_end_CRRT <- factor(data_tabletwo_b$FB_category_at_end_CRRT, levels = c("negative FB", "positive FB"), labels = c("Negative Fluid Balance","Positive Fluid Balance"))
 data_tabletwo_b$mean_FB_bin <- factor(data_tabletwo_b$mean_FB_bin, 
                                       levels = c("positive (>20.833)","neutral (-20.833 - 20.833)", "light_negative (-62.5 - -20.833)","strong_negative (< -62.5)"), 
                                       labels = c("Positive (>20.83)","Neutral (-20.83 - 20.83)", "Light Negative (-62.5 - -20.84)","Strong Negative (< -62.5)"))
 
+data_tabletwo_b <- data_tabletwo_b %>% mutate(negative_FB_at_end_CRRT = ifelse(FB_category_at_end_CRRT == "negative FB", 1,0),
+                                              neg_FB_category = ifelse(FB_category == "negative FB change", 1, 0))
+
 labelstolabel2b <- list(
   mean_dm_balancerate_h = "Mean hourly Change of Fluid Balance (ml/h)",
   mean_FB_bin = "Group of Mean Fluid Balance Change (ml/h)",
-  FB_at_end_of_CRRT = "Cumulative Fluid Balance at the End of Continuous Renal Replacement Therapy (L)",
-  FB_category_at_end_CRRT = "Cumulative Fluid Balance at the End of Continuous Renal Replacement Therapy:",
-  FB_category = "Total Fluid Change during Continuous Renal Replacement Therapy:",
-  cumulative_fluid_change_CRRT_L = "Total Fluid Change during Continuous Renal Replacement Therapy (L)",
+  negative_FB_at_end_CRRT = "Negative Cumulative Fluid Balance at the End of Continuous Renal Replacement Therapy:",
+  neg_FB_category = "Negative Total Fluid Change during Continuous Renal Replacement Therapy:",
   cumulative_fluid_change_CRRT_L_d = "Total Fluid Change during Continuous Renal Replacement Therapy per day (L/day)",
-  UF_fluid_L = "Total Fluid removed by Continuous Renal Replacement Therapy (L)",
   UF_fluid_L_d = "Total Fluid removed by Continuous Renal Replacement Therapy per day (L/day)",
   percent_change_fluid_balance = "Relative Fluid Balance Change (% of Fluid Balance before Continuous Renal Replacement Therapy) in Patients with positive Fluid Balance",
   percentage_FB_neg = "Percentage of Time with negative hourly Fluid Balance Change during Continuous Renal Replacement Therapy (%)",
@@ -183,17 +181,14 @@ labelstolabel2b <- list(
 
 Table2b <- data_tabletwo_b %>% dplyr::select(source, 
                                              mean_dm_balancerate_h,mean_FB_bin,
-                                             FB_at_end_of_CRRT, FB_category_at_end_CRRT, cumulative_fluid_change_CRRT_L, FB_category, 
-                                             cumulative_fluid_change_CRRT_L_d, UF_fluid_L, UF_fluid_L_d, percent_change_fluid_balance,
+                                             negative_FB_at_end_CRRT, neg_FB_category, 
+                                             cumulative_fluid_change_CRRT_L_d, UF_fluid_L_d, percent_change_fluid_balance,
                                              percentage_FB_neg, percentage_FB_neg_during_UF
 ) %>% 
   tbl_summary(by = source, label = labelstolabel2b, missing = "no",
-              statistic = list(mean_dm_balancerate_h  ~ "{mean} ({sd})", 
-                               FB_at_end_of_CRRT ~ "{median} ({p25}-{p75})",
-                               cumulative_fluid_change_CRRT_L ~ "{median} ({p25}-{p75})", 
+              statistic = list(mean_dm_balancerate_h  ~ "{mean} ({sd})",
                                cumulative_fluid_change_CRRT_L_d ~ "{median} ({p25}-{p75})",
                                percent_change_fluid_balance ~ "{median} ({p25}-{p75})",
-                               UF_fluid_L ~ "{median} ({p25}-{p75})",
                                UF_fluid_L_d  ~ "{median} ({p25}-{p75})",
                                percentage_FB_neg ~ "{mean} ({sd})",
                                percentage_FB_neg_during_UF ~ "{mean} ({sd})",
@@ -212,9 +207,5 @@ Table2 <- tbl_stack(list(Table2a, Table2b))
 Table2
 
 #Save as word
-Table2_gt <- as_gt(Table2) %>%
-  tab_footnote(footnote = "Negative < 0", locations = cells_body(
-    columns = label,rows = label %in% c("Negative Fluid Balance", "Negative Fluid Change"))) %>% 
-  tab_footnote(footnote= "Positive >= 0",locations = cells_body(
-      columns = label,rows = label %in% c("Positive Fluid Balance", "Positive Fluid Change")))
+Table2_gt <- as_gt(Table2)
 gtsave(Table2_gt, filename= "Table_2.docx", path = glue("{R_output_root}"))
