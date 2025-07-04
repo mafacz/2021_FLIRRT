@@ -7,15 +7,6 @@ library(glue)
 library(stringr)
 library(rlang)
 library(cowplot)
-#######################################
-#######################################
-
-library(tidyverse)
-library(gt)
-library(gtsummary)
-library(flextable)
-library(officer)
-library(glue)
 library(jsonlite)
 
 ################################################################################

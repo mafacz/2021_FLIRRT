@@ -5,7 +5,7 @@ import json
 import socket
 
 HiRID = False
-AmsterdamUMCDb = True
+AmsterdamUMCDb = False
 Total = True
 
 # Load configuration

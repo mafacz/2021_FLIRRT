@@ -7,6 +7,7 @@ library(patchwork)
 library(ggplot2)
 library(plotly)
 library(jsonlite)
+library(glue)
 
 ################################################################################
 
@@ -36,7 +37,8 @@ file_prefix <- file.path(output_root, "Final")
 UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv")) 
 covariates <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
 combined <- inner_join(UF_and_FB, covariates, by="patid")
-combined <- combined %>% filter(!is.na(apache_score))
+combined <- combined %>% filter(!is.na(apache_score), !is.na(invasive_ventilation))
+combined$outcome_death_28d <- factor(combined$outcome_death_28d, levels = c(0, 1))
 
 ################################################################################
 
@@ -135,8 +137,6 @@ ggplot(pdp_2d, aes(x = mean_vm5010_idx, y = mean_dm_balancerate_h)) +
   labs(x = "Mean UF rate (ml/kg/h)",
        y = "Mean fluid balance rate (ml/h)") +
   theme_minimal()
-ggsave(filename = glue("{R_output_root}/eFigure 6c_2D Partial Dependence Plot.png"),
-       width = 6, height = 6, bg="white")
 
 
 ######################
@@ -158,4 +158,4 @@ pdp_3D <- plot_ly(x = sort(unique(pdp_2d_copy$UF)),
               yaxis = list(title = "Mean Fluid Balance Change (ml/h)"),
               zaxis = list(title = "Predicted 28-day mortality")
             ))
-htmlwidgets::saveWidget(pdp_3D, glue("{R_output_root}/eFigure 6d_3D_PDP_plot.html"))
+htmlwidgets::saveWidget(pdp_3D, glue("{R_output_root}/eFigure 6c.html"))
