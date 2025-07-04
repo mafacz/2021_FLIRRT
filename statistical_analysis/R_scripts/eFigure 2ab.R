@@ -572,7 +572,7 @@ Mean_FB_Anuria <- function_spline_plot_groups(dataframe = Anuria_df, x_var = mea
 Mean_FB_Anuria
 
 combined_Anuria <- Mean_UF_Anuria %>% wrap_elements() | Mean_FB_Anuria %>% wrap_elements()
-ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Anuria.png"),
+ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Onset_Anuria.png"),
        width = 8, height = 6)
 
 ##############################################
@@ -597,7 +597,7 @@ AUC_plot_FO <- function_spline_plot_three_groups(dataframe = combined, x_var = U
 AUC_plot_FO
 
 AUC_combined <- AUC_plot_database | AUC_plot_Sex | AUC_plot_FO
-ggsave(plot=AUC_combined, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC.png"), 
+ggsave(plot=AUC_combined, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC.png"), 
        width = 15, height = 6)
 
 AUC_plot_NOR <- function_spline_plot_three_groups(dataframe = Noradre_df, x_var = UF_AUC, group_var = Noradrenalin_increase_0.1_mcgkgmin, y_var = outcome_death_28d,
@@ -623,7 +623,7 @@ AUC_plot_Lac4
 
 
 AUC_combined_Lab <- AUC_plot_NOR | AUC_plot_Lac2 | AUC_plot_Lac4
-ggsave(plot=AUC_combined_Lab, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC_Labvalues.png"), 
+ggsave(plot=AUC_combined_Lab, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC_Nor_Lac.png"), 
        width = 15, height = 6)
 
 AUC_plot_anuria <- function_spline_plot_three_groups(dataframe = Anuria_df, x_var = UF_AUC, group_var = Anuria_onset, y_var = outcome_death_28d,
@@ -632,6 +632,6 @@ AUC_plot_anuria <- function_spline_plot_three_groups(dataframe = Anuria_df, x_va
                                                      legend_labels = c("Overall", "Anuria during CRRT", "No new anuria onset during CRRT"),
                                                      legend_position = "bottom", bins = 70)
 AUC_plot_anuria
-ggsave(plot=AUC_plot_anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_AUC_Anuria.png"), 
+ggsave(plot=AUC_plot_anuria, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC_Anuria.png"), 
        width = 5, height = 6)
 #################################################################################

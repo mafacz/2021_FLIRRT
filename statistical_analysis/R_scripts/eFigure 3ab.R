@@ -175,14 +175,11 @@ heatmaps_HiRID <- generate_all_heatmaps(database="HiRID")
 heatmap_mean_HiRID <- heatmaps_HiRID[[1]]
 heatmap_Q3_HiRID <- heatmaps_HiRID[[2]]
 ggsave(plot= heatmap_mean_HiRID, filename = glue("{R_output_root}/eFigure 3b\\eFigure 3b_mean_HiRID.png"), bg="white", width = 6, height = 6)
-ggsave(plot= heatmap_Q3_HiRID, filename = glue("{R_output_root}/eFigure 3b\\eFigure 3b_Q3_HiRID.png"), bg="white", width = 6, height = 6)
 
 heatmaps_AmsterdamUMCdb <- generate_all_heatmaps(database = "AmsterdamUMCDb")
 heatmap_mean_AmsterdamUMCdb <- heatmaps_AmsterdamUMCdb[[1]]
 heatmap_Q3_AmsterdamUMCdb <- heatmaps_AmsterdamUMCdb[[2]]
 ggsave(plot= heatmap_mean_AmsterdamUMCdb, filename = glue("{R_output_root}/eFigure 3b\\eFigure 3b_mean_AmsterdamUMCdb.png"), bg="white", width = 6, height = 6)
-ggsave(plot= heatmap_Q3_AmsterdamUMCdb, filename = glue("{R_output_root}/eFigure 3b\\eFigure 3b_Q3_AmsterdamUMCdb.png"), bg="white", width = 6, height = 6)
-
 
 
 ##################################################################################
