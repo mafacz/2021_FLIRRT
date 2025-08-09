@@ -83,7 +83,8 @@ function_spline_plot_dual <- function(dataframe,
                                       ylim_range = NULL,
                                       label1 = "x_data", 
                                       label2 = "x_data2",
-                                      histo_lim = NULL) {
+                                      histo_lim = NULL,
+                                      tag = 'a') {
   
   # Filter both datasets using the same filter function
   df1 <- function_filter_2SD(dataframe, {{x_data}}) %>%
@@ -102,8 +103,7 @@ function_spline_plot_dual <- function(dataframe,
   plot <- ggplot(plot_data, aes(x = x_value, y = {{y_data}}, color = group)) +
     geom_smooth() +
     geom_point(alpha = 0) +
-    labs(x = x_title, y = y_title, color = NULL) + 
-    theme(legend.position = "bottom")
+    labs(x = x_title, y = y_title, color = NULL)
   
   if (!is.null(xlim_range)) plot <- plot + xlim(xlim_range)
   if (!is.null(ylim_range)) plot <- plot + ylim(ylim_range)
@@ -116,9 +116,13 @@ function_spline_plot_dual <- function(dataframe,
           axis.title.x = element_blank(),
           axis.text.x = element_blank(),
           axis.ticks.x = element_blank()) +
-    labs(y = "Count") +
-    ylim({{histo_lim}})
+    ylim({{histo_lim}}) + labs(tag = tag)
   if (!is.null(xlim_range)) hist_plot <- hist_plot + xlim(xlim_range)
+  if (!is.null(y_title)) {
+    hist_plot <- hist_plot + labs(y = "Count")
+  } else {
+    hist_plot <- hist_plot + theme(axis.title.y = element_blank())
+  }
   
   # Combine plots
   combined_plot <- hist_plot / plot + plot_layout(heights = c(1, 2))
@@ -141,19 +145,18 @@ combined <- inner_join(UF_and_FB, mortality, by="patid")
 patient_numbers <- nrow(combined)
 
 ## Spline plots of UF: mean and 3.IQR
+ylim = c(0,1.2)
 xlim_UF = c(0,3.3)
 UF_plot <- function_spline_plot_dual(dataframe = combined, x_data = mean_vm5010_idx, x_data2 = Q3_vm5010_idx, 
                                      x_title = "Net Ultrafiltration Rate (ml/kg/h)", label1 = "Mean", label2 = "Upper Quartile", 
-                                     xlim_range = xlim_UF, histo_lim = c(0,70))
-UF_plot <- UF_plot %>% wrap_elements()
+                                     xlim_range = xlim_UF, ylim_range = ylim, histo_lim = c(0,70), tag='a')
 
 
 ## Spline plots of FB: mean and 1.IQR
 xlim_FB = c(-500,200)
 FB_plot <- function_spline_plot_dual(dataframe = combined, x_data = mean_dm_balancerate_h, x_data2 = Q1_dm_balancerate_h, 
-                                     x_title = "Change of Fluid Balance (ml/h)", label1 = "Mean", label2 = "Upper Quartile", 
-                                     xlim_range = xlim_FB, histo_lim = c(0,70))
-FB_plot <- FB_plot %>% wrap_elements()
+                                     x_title = "Change of Fluid Balance (ml/h)", y_title = NULL, label1 = "Mean", label2 = "Upper Quartile", 
+                                     xlim_range = xlim_FB, ylim_range = ylim, histo_lim = c(0,70), tag='b')
 
 ## Combine to one plot
 Figure2ab <- (UF_plot | FB_plot)
@@ -283,10 +286,7 @@ generate_all_heatmaps <- function(database = c("HiRID", "AmsterdamUMCDb", "Total
 }
 
 heatmaps <- generate_all_heatmaps(database="Total")
-heatmap_mean <- heatmaps[[1]] +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+heatmap_mean <- heatmaps[[1]]
 heatmap_Q3 <- heatmaps[[2]]
 Figure2c <- (heatmap_mean / heatmap_Q3)
 ggsave(plot = Figure2c, glue("{R_output_root}/Figure 2c.png"), height = 12, width = 8)
@@ -295,10 +295,37 @@ ggsave(plot = Figure2c, glue("{R_output_root}/Figure 2c.png"), height = 12, widt
 ################################################################################
 ## Combine Heatmap and Spline plots :)
 
-Figure2 <- Figure2ab / heatmap_mean / heatmap_Q3 + plot_layout(heights = c(1.5, 1, 1), widths = c(3,1,1))
-Figure2
-ggsave(plot = Figure2, filename = glue("{R_output_root}/Figure 2.png"), height = 12, width = 8)
+library(patchwork)
 
+
+## Apply to heatmaps:
+# Left heatmap: keep y-axis
+heatmap_mean_clean <- heatmap_mean +
+  theme(axis.title.y = element_text(),
+        axis.text.y = element_text(),
+        axis.ticks.y = element_line()) + labs(tag = 'c')
+
+# Right heatmap: remove y-axis, add y-axis title
+heatmap_Q3_clean <- heatmap_Q3 +
+  theme(axis.title.y = element_text(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) + labs(tag = 'd')
+
+# Combine spline plots into a single row, full width
+spline_combined <- (UF_plot | FB_plot) +
+  plot_layout(widths = c(1, 1), guides = "collect")
+
+# Combine heatmaps into a single row, same width alignment
+heatmap_combined <- (heatmap_mean_clean | heatmap_Q3_clean) +
+  plot_layout(widths = c(1, 1), guides = "collect")
+
+# Stack spline plots and heatmaps vertically
+Figure2 <- (spline_combined / heatmap_combined) + 
+  plot_layout(heights = c(1.5, 1))
+
+# Display and save
+print(Figure2)
+ggsave(plot = Figure2, filename = glue("{R_output_root}/Figure 2.png"), height = 12, width = 12)
 
 ################################################################################
 

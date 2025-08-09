@@ -87,19 +87,20 @@ combined <- combined %>%
     emergency_admission = "Emergency Admission",
     apache_score = "APACHE score at admission",
     SOFA_score = "SOFA score at start of CRRT",
-    invasive_ventilation = "Invasive Ventilation at start of CRRT")
+    invasive_ventilation = "Invasive Ventilation at start of CRRT",
+    session_length = "Duration of CRRT session")
 
 model_both_mean_adj <- glm(outcome_death_28d ~ mean_UFnet_bin + mean_FB_bin + age_at_admission + gender + BMI +
-                        emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                        emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                       data = combined, family = binomial)
 model_both_Q3_adj <- glm(outcome_death_28d ~ Q3_UFnet_bin + mean_FB_bin + age_at_admission + gender + BMI +
-                        emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                        emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                       data = combined, family = binomial)
 
 Figure_3a <- forest_model(model_both_mean_adj, exponentiate = TRUE)
 Figure_3b <- forest_model(model_both_Q3_adj, exponentiate = TRUE)
 
-ggsave(plot= Figure_3a / Figure_3b, filename = glue("{R_output_root}/Figure 3.png"),
-       width = 12, height = 12)
+ggsave(plot= Figure_3a, filename = glue("{R_output_root}/Figure 3.png"),
+       width = 17, height = 6)
 
 ###############################################################################

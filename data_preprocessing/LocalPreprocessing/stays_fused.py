@@ -5,7 +5,7 @@ import json
 import socket
 
 HiRID = False
-AmsterdamUMCDb = False
+AmsterdamUMCDb = True
 Total = True
 
 # Load configuration
@@ -26,6 +26,8 @@ elif Total:
     suffix = "_Total"
     stays_filtered = pd.read_csv(os.path.join(output_root, "Total_preprocessed", "stays_filtered_Total.csv"))
     regular_df_UFperkg = pd.read_csv(os.path.join(output_root, "Final", "regular_UFperkg_Total.csv"))
+
+print(stays_filtered.columns)
     
 ## Create a df for fluid_overload with categories of 5, 7 and 10 % of kg body weight. 
 fluidoverload = regular_df_UFperkg.groupby("patid")["fluidoverload"].mean().reset_index(name="fluidoverload")
@@ -53,6 +55,12 @@ stays_fused = stays_filtered.merge(fluidoverload, on="patid", how="left") \
                             .merge(SOFA_score, on="patid", how="left") \
                             .merge(inv_vent, on="patid", how="left")
 
+print(stays_fused.columns)
+
 stays_fused.to_csv(os.path.join(output_root, "Final", f"stays_fused{suffix}.csv"), index=False)
 
 print(suffix)
+
+
+
+

@@ -131,60 +131,62 @@ combined <- combined %>%
     emergency_admission = "Emergency Admission",
     apache_score = "APACHE score at admission",
     SOFA_score = "SOFA score at start of CRRT",
-    invasive_ventilation = "Invasive Ventilation at start of CRRT")
+    invasive_ventilation = "Invasive Ventilation at start of CRRT",
+    session_length = "Duration of CRRT session")
+
 labelled::var_label(combined$mean_UFnet_bin_UFpos)
 labelled::var_label(combined$mean_FB_bin_FBneg)
 
 model_both_mean <- glm(outcome_death_28d ~ mean_UFnet_bin + mean_FB_bin,
                            data = combined, family = binomial)
-model_both_Q3<- glm(outcome_death_28d ~ Q3_UFnet_bin + mean_FB_bin,
-                         data = combined, family = binomial)
 
-eFigure_4a1 <- forest_model(model_both_mean, exponentiate = TRUE)
-eFigure_4a2 <- forest_model(model_both_Q3, exponentiate = TRUE)
+eFigure_4a <- forest_model(model_both_mean, exponentiate = TRUE)
 
-ggsave(plot= eFigure_4a1 / eFigure_4a2, filename =  glue("{R_output_root}/eFigure 4a.png"),
+ggsave(plot= eFigure_4a, filename =  glue("{R_output_root}/eFigure 4a.png"),
        width = 12, height = 8)
 
 ################################################################################
 
 ## Do the same log regression model for different summary statistics of UF and FB 
 
+model_both_Q3_adj <- glm(outcome_death_28d ~ Q3_UFnet_bin + mean_FB_bin + age_at_admission + gender + BMI +
+                           emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
+                         data = combined, family = binomial)
 model_both_mean_48h_adj <- glm(outcome_death_28d ~ mean_UFnet_bin_48h + mean_FB_bin_48h + age_at_admission + gender + BMI +
-                             emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                             emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                            data = combined, family = binomial)
 model_both_Q1_adj <- glm(outcome_death_28d ~ mean_UFnet_bin + Q1_FB_bin + age_at_admission + gender + BMI +
-                           emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                           emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                          data = combined, family = binomial)
 model_both_UFpos_adj <- glm(outcome_death_28d ~ mean_UFnet_bin_UFpos + mean_FB_bin + age_at_admission + gender + BMI +
-                              emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                              emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                             data = combined, family = binomial)
 model_both_FBneg_adj <- glm(outcome_death_28d ~ mean_UFnet_bin + mean_FB_bin_FBneg + age_at_admission + gender + BMI +
-                           emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                           emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                          data = combined, family = binomial)
 model_both_AUC_adj <- glm(outcome_death_28d ~ UF_AUC + mean_FB_bin + age_at_admission + gender + BMI +
-                            emergency_admission + apache_score + SOFA_score + invasive_ventilation,
+                            emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                           data = combined, family = binomial)
 
-eFigure_4b1 <- forest_model(model_both_mean_48h_adj, exponentiate = TRUE)
-eFigure_4b1
+eFigure_4b1 <- forest_model(model_both_Q3_adj, exponentiate = TRUE)
 ggsave(plot= eFigure_4b1, filename = glue("{R_output_root}/eFigure 4b1.png"),
        width = 12, height = 8)
-eFigure_4b2 <- forest_model(model_both_Q1_adj, exponentiate = TRUE)
-eFigure_4b2
+eFigure_4b2 <- forest_model(model_both_UFpos_adj, exponentiate = TRUE)
 ggsave(plot= eFigure_4b2, filename = glue("{R_output_root}/eFigure 4b2.png"),
        width = 12, height = 8)
-eFigure_4b3 <- forest_model(model_both_UFpos_adj, exponentiate = TRUE)
-eFigure_4b3
+eFigure_4b3 <- forest_model(model_both_mean_48h_adj, exponentiate = TRUE)
 ggsave(plot= eFigure_4b3, filename = glue("{R_output_root}/eFigure 4b3.png"),
        width = 12, height = 8)
-eFigure_4b4 <- forest_model(model_both_FBneg_adj, exponentiate = TRUE)
-eFigure_4b4
-ggsave(plot= eFigure_4b4, filename = glue("{R_output_root}/eFigure 4b4.png"),
-       width = 12, height = 8)
 
+# Combine plots with patchwork
+combined_plot <- eFigure_4a / eFigure_4b1 / eFigure_4b2 / eFigure_4b3 + 
+  plot_layout(heights = c(0.6, 1,1,1)) +
+  plot_annotation(tag_levels = 'a')
 
-eFigure_4b5 <- forest_model(model_both_AUC_adj, exponentiate = TRUE)
-eFigure_4b5
-ggsave(plot= eFigure_4b5, filename = glue("{R_output_root}/eFigure 4b5.png"),
-       width = 12, height = 8)
+# Save the combined figure 3
+ggsave(plot = combined_plot, filename = glue("{R_output_root}/eFigure3.png"), width = 16, height = 30)
+
+####Figure 4
+eFigure_4 <- forest_model(model_both_AUC_adj, exponentiate = TRUE)
+ggsave(plot= eFigure_4, filename =  glue("{R_output_root}/eFigure4.png"),
+       width = 16, height = 6)

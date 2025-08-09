@@ -121,6 +121,10 @@ p_uf_pos <- autoplot(pdp_uf_pos,
 ggsave(filename = glue("{R_output_root}/eFigure 6a.png"),
        plot = (p_uf / p_uf_q3/ p_uf_48 / p_uf_pos), width = 8, height = 12, dpi = 300)
 
+combined_pdp <- (p_fb | p_uf) / (p_fb_q1 | p_uf_q3) / (p_fb_48 | p_uf_48) / (p_fb_neg | p_uf_pos) +
+  plot_annotation(tag_levels = 'a')
+ggsave(filename = glue("{R_output_root}/eFigure 6.png"),
+       plot = combined_pdp, width = 16, height = 24, dpi = 300, )
 
 # 2D PDP
 pdp_2d <- partial(rf_model, pred.var = c("mean_vm5010_idx", "mean_dm_balancerate_h"),

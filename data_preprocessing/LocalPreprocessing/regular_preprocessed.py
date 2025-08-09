@@ -7,7 +7,7 @@ import glob
 
 ###############
 ## load data ##
-HiRID = False
+HiRID = True
 # Load configuration
 with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
     config = json.load(f)

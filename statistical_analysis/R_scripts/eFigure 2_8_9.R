@@ -416,7 +416,7 @@ FB_plot <- FB_plot %>% wrap_elements()
 ## Combine to one plot
 eFigure2a <- (UF_plot | FB_plot)
 eFigure2a
-ggsave(plot = eFigure2a, filename = glue("{R_output_root}/eFigure 2a.png"),
+ggsave(plot = eFigure2a, filename = glue("{R_output_root}/eFigure 2.png"),
        width = 8, height = 4)
 
 #############################################
@@ -435,8 +435,8 @@ Mean_FB_database <- function_spline_plot_three_groups(dataframe = combined, x_va
 Mean_FB_database
 
 combined_database <- Mean_UF_database %>% wrap_elements() | Mean_FB_database %>% wrap_elements()
-ggsave(plot=combined_database, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_database.png"),
-       width = 8, height = 6)
+ggsave(plot=combined_database, filename = glue("{R_output_root}/eFigure 8.png"),
+       width = 12, height = 6)
 
 #############################################
 ## Subgroup plots: for Sex
@@ -454,7 +454,7 @@ Mean_FB_Sex <- function_spline_plot_three_groups(dataframe = combined, x_var = m
 Mean_FB_Sex
 
 combined_sex <- Mean_UF_Sex %>% wrap_elements() | Mean_FB_Sex %>% wrap_elements()
-ggsave(plot=combined_sex, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_sex.png"),
+ggsave(plot=combined_sex, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8b_sex.png"),
        width = 8, height = 6)
 
 #############################################
@@ -473,7 +473,7 @@ Mean_FB_FO <- function_spline_plot_three_groups(dataframe = combined, x_var = me
 Mean_FB_FO
 
 combined_FO <- Mean_UF_FO %>% wrap_elements() | Mean_FB_FO %>% wrap_elements()
-ggsave(plot=combined_FO, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_fluidoverload10.png"),
+ggsave(plot=combined_FO, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8c_fluidoverload10.png"),
        width = 8, height = 6)
 
 #############################################
@@ -497,7 +497,7 @@ Mean_FB_NOR <- function_spline_plot_groups(dataframe = Noradre_df, x_var = mean_
 Mean_FB_NOR
 
 combined_NOR <- Mean_UF_NOR %>% wrap_elements() | Mean_FB_NOR %>% wrap_elements()
-ggsave(plot=combined_NOR, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_NOR_0.1.png"),
+ggsave(plot=combined_NOR, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8d_NOR_0.1.png"),
        width = 8, height = 6)
 
 
@@ -547,10 +547,10 @@ Mean_FB_Lac_4 <- function_spline_plot_groups(dataframe = Lactate_df, x_var = mea
 Mean_FB_Lac_4
 
 combined_Lac_2 <- Mean_UF_Lac_2 %>% wrap_elements() | Mean_FB_Lac_2 %>% wrap_elements()
-ggsave(plot=combined_Lac_2, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Lac_2.png"),
+ggsave(plot=combined_Lac_2, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8e_Lac_2.png"),
        width = 8, height = 6)
 combined_Lac_4 <- Mean_UF_Lac_4 %>% wrap_elements() | Mean_FB_Lac_4 %>% wrap_elements()
-ggsave(plot=combined_Lac_4, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Lac_4.png"),
+ggsave(plot=combined_Lac_4, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8f_Lac_4.png"),
        width = 8, height = 6)
 
 ##############################################
@@ -572,66 +572,19 @@ Mean_FB_Anuria <- function_spline_plot_groups(dataframe = Anuria_df, x_var = mea
 Mean_FB_Anuria
 
 combined_Anuria <- Mean_UF_Anuria %>% wrap_elements() | Mean_FB_Anuria %>% wrap_elements()
-ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 2b_Onset_Anuria.png"),
+ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8g_Onset_Anuria.png"),
        width = 8, height = 6)
 
-##############################################
-## AUC plot for all subgroups
+combined_sex <- combined_sex + plot_annotation(title = "Sex Subgroup")
+combined_FO <- combined_FO + plot_annotation(title = "Fluid Overload > 10% Subgroup")
+combined_NOR <- combined_NOR + plot_annotation(title = "Norepinephrine > 0.1 µmol/kg/min Subgroup")
+combined_Lac_2 <- combined_Lac_2 + plot_annotation(title = "Lactate ≥ 2 mmol/L Subgroup")
+combined_Lac_4 <- combined_Lac_4 + plot_annotation(title = "Lactate ≥ 4 mmol/L Subgroup")
+combined_Anuria <- combined_Anuria + plot_annotation(title = "Anuria Subgroup")
 
-AUC_plot_database <- function_spline_plot_three_groups(dataframe = combined, x_var = UF_AUC, group_var = source, y_var = outcome_death_28d,
-                                                       x_label = "Total Net Ultrafiltratoin Volume in 12 first Treatment Hours (ml/kg)",y_label = "28-day mortality",
-                                                       legend_labels = c("Overall", "HiRID", "AmsterdamUMCdb"), 
-                                                       legend_position = "bottom", bins = 70)
-AUC_plot_database
+combined_all <- (combined_sex%>% wrap_elements() | combined_FO%>% wrap_elements()) / (combined_NOR%>% wrap_elements() | combined_Lac_2%>% wrap_elements()) / (combined_Lac_4%>% wrap_elements() | combined_Anuria%>% wrap_elements()) +
+  plot_layout(heights = c(1,1,1), widths = c(1,1)) +
+  plot_annotation(tag_levels = 'a')
 
-AUC_plot_Sex <- function_spline_plot_three_groups(dataframe = combined, x_var = UF_AUC, group_var = gender, y_var = outcome_death_28d,
-                                             x_label = "Total Net Ultrafiltratoin Volume in 12 first Treatment Hours (ml/kg)",y_label = "28-day mortality",
-                                             legend_labels = c("Overall", "Female", "Male"), 
-                                             legend_position = "bottom", bins = 70)
-AUC_plot_Sex
-
-AUC_plot_FO <- function_spline_plot_three_groups(dataframe = combined, x_var = UF_AUC, group_var = fluidoverload_10, y_var = outcome_death_28d,
-                                                 x_label = "Total Net Ultrafiltratoin Volume in 12 first Treatment Hours (ml/kg)",y_label = "28-day mortality",
-                                                 legend_labels = c("Overall", "Fluid overload ≥ 10%", "No Fluid overload ≥ 10%"), 
-                                                 legend_position = "bottom", bins = 70)
-AUC_plot_FO
-
-AUC_combined <- AUC_plot_database | AUC_plot_Sex | AUC_plot_FO
-ggsave(plot=AUC_combined, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC.png"), 
-       width = 15, height = 6)
-
-AUC_plot_NOR <- function_spline_plot_three_groups(dataframe = Noradre_df, x_var = UF_AUC, group_var = Noradrenalin_increase_0.1_mcgkgmin, y_var = outcome_death_28d,
-                                                  x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
-                                                  show_overall = TRUE,
-                                                  legend_labels = c("Overall", "No Noradrenalin increase", "Noradrenalin increase > 0.1mcg/kg/min"),
-                                                  legend_position = "bottom", bins = 70)
-AUC_plot_NOR
-
-AUC_plot_Lac2 <- function_spline_plot_three_groups(dataframe = Lactate_df, x_var = UF_AUC, group_var = Lactate_increase_2, y_var = outcome_death_28d,
-                                                  x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
-                                                  show_overall = TRUE,
-                                                  legend_labels = c("Overall", "No Lactate increase", "Lactate Increase > 2mmol/l"),
-                                                  legend_position = "bottom", bins = 70)
-AUC_plot_Lac2
-
-AUC_plot_Lac4 <- function_spline_plot_three_groups(dataframe = Lactate_df, x_var = UF_AUC, group_var = Lactate_increase_4, y_var = outcome_death_28d,
-                                               x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
-                                               show_overall = TRUE,
-                                               legend_labels = c("Overall", "No Lactate increase", "Lactate Increase > 4mmol/l"),
-                                               legend_position = "bottom", bins = 70)
-AUC_plot_Lac4
-
-
-AUC_combined_Lab <- AUC_plot_NOR | AUC_plot_Lac2 | AUC_plot_Lac4
-ggsave(plot=AUC_combined_Lab, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC_Nor_Lac.png"), 
-       width = 15, height = 6)
-
-AUC_plot_anuria <- function_spline_plot_three_groups(dataframe = Anuria_df, x_var = UF_AUC, group_var = Anuria_onset, y_var = outcome_death_28d,
-                                                     x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
-                                                     show_overall = TRUE,
-                                                     legend_labels = c("Overall", "Anuria during CRRT", "No new anuria onset during CRRT"),
-                                                     legend_position = "bottom", bins = 70)
-AUC_plot_anuria
-ggsave(plot=AUC_plot_anuria, filename = glue("{R_output_root}/eFigure 2c\\eFigure 2c_AUC_Anuria.png"), 
-       width = 5, height = 6)
-#################################################################################
+ggsave(plot = combined_all, filename = glue("{R_output_root}/eFigure9.png"),
+       width = 20, height = 30)

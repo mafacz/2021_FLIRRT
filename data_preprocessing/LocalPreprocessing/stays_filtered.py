@@ -7,7 +7,7 @@ import glob
 
 ###############
 ## Load data ##
-HiRID = True
+HiRID = False
 
 # Load configuration
 with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'path.config'))) as f:
@@ -107,3 +107,4 @@ print("Total excluded patients:", len(stays_df) - len(stays_df_filtered))
 ##
 ######
 ##############
+

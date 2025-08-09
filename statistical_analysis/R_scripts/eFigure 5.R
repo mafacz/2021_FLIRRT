@@ -6,6 +6,7 @@ library(glue)
 library(forestmodel)
 library(labelled)
 library(jsonlite)
+library(patchwork)
 
 ################################################################################
 
@@ -156,7 +157,7 @@ step1_model <- glm(outcome_death_28d ~ mean_UFnet_bin + age_at_admission + gende
 step1_mean_moderate <- forest_model(step1_model, exponentiate = TRUE) + ggtitle("", "Reference: Moderate NUF rate")
 # Step 2: log regression model of FB and Mortality
 step2_model <- glm(outcome_death_28d ~ fluidbalancechangeindL + age_at_admission + gender + BMI + emergency_admission + apache_score + SOFA_score + invasive_ventilation, data = combined, family=binomial)
-step2 <- forest_model(step2_model, exponentiate = TRUE) + ggtitle("Step 2: Association between fluid balance change and 28-day mortality")
+step2 <- forest_model(step2_model, exponentiate = TRUE)
 # Step 3: linear regression of FB and UF 
 step3_model <- glm(mean_dm_balancerate_h ~ mean_UFnet_bin + age_at_admission + gender + BMI + emergency_admission + apache_score + SOFA_score + invasive_ventilation, data = combined)
 step3_mean_moderate <- forest_model(step3_model) + ggtitle("", "Reference: Moderate NUF rate")
@@ -256,3 +257,14 @@ ggsave(plot= step3_mean_low / step3_mean_moderate / step3_mean_high, filename = 
        width = 11, height = 15)
 ggsave(plot= step3_Q3_low / step3_Q3_moderate / step3_Q3_high, filename = glue("{R_output_root}/eFigure 5e.png"),
        width = 11, height = 15)
+
+###############################################################################
+# Save eFigure5 as in the paper
+###############################################################################
+
+combined_plot <- step2 / step3_mean_high + 
+  plot_layout(heights = c(1,1)) +
+  plot_annotation(tag_levels = 'a')
+
+# Save the combined figure 5
+ggsave(plot = combined_plot, filename = glue("{R_output_root}/eFigure5.png"), width = 16, height = 30)
