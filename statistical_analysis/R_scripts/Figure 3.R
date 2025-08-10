@@ -100,7 +100,15 @@ model_both_Q3_adj <- glm(outcome_death_28d ~ Q3_UFnet_bin + mean_FB_bin + age_at
 Figure_3a <- forest_model(model_both_mean_adj, exponentiate = TRUE)
 Figure_3b <- forest_model(model_both_Q3_adj, exponentiate = TRUE)
 
-ggsave(plot= Figure_3a, filename = glue("{R_output_root}/Figure 3.png"),
-       width = 17, height = 6)
+ggsave(
+  plot =  Figure_3a,
+  filename = glue("{R_output_root}/Figure 3.tiff"),
+  height = 6,
+  width = 17,
+  dpi = 300,
+  units = "in",
+  device = "tiff",
+  compression = "lzw" # common for journal submissions
+)
 
 ###############################################################################

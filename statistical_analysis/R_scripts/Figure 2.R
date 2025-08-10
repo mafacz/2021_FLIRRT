@@ -325,7 +325,16 @@ Figure2 <- (spline_combined / heatmap_combined) +
 
 # Display and save
 print(Figure2)
-ggsave(plot = Figure2, filename = glue("{R_output_root}/Figure 2.png"), height = 12, width = 12)
+ggsave(
+  plot = Figure2,
+  filename = glue("{R_output_root}/Figure 2.tiff"),
+  height = 12,
+  width = 12,
+  dpi = 300,
+  units = "in",
+  device = "tiff",
+  compression = "lzw" # common for journal submissions
+)
 
 ################################################################################
 
