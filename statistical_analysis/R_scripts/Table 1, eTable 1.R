@@ -59,6 +59,7 @@ data_tableone <- data_tableone %>% mutate(positive_fluidoverload = ifelse(fluido
                                           is_female = ifelse(gender == "F", 1, 0),
                                           icu_death = ifelse(outcome_icu_death == "True",1,0),
                                           death_28d = ifelse(outcome_death_28d == 1, 1,0))
+
 #convert to labeled categories 
 data_tableone$emergency_admission <- factor(data_tableone$emergency_admission, levels = c("True", "False"), labels = c("Yes", "No"))
 data_tableone$adm_apache_group <- factor(data_tableone$adm_apache_group, levels = apache_groups$metavariable, labels = apache_groups$groupname_FLIRRT)
@@ -69,10 +70,13 @@ data_tableone$fluidoverload_10 <- factor(data_tableone$fluidoverload_10, levels 
 data_tableone$SOFA_score <- as.integer(data_tableone$SOFA_score)
 data_tableone$invasive_ventilation <- factor(data_tableone$invasive_ventilation, levels = c(1,0), labels = c("Yes", "No"))
 
+data_tableone <- data_tableone %>% mutate(post_surgical_aki = case_when(source == "Amsterdam UMC" ~ NA_real_, source == "HiRID" & adm_apache_group %in% c("Cardiovascular or Vascular Surgery","Gastrointestinal Surgery","Other surgical") & has_aki_or_acute_on_chronic == 1 ~ 1, TRUE ~ 0))
+
 # Diagnosis review classifications (HiRID patients only, Amsterdam = NA)
 data_tableone$has_aki_or_acute_on_chronic <- factor(data_tableone$has_aki_or_acute_on_chronic, levels = c(1,0), labels = c("Yes", "No"))
 data_tableone$has_eskd <- factor(data_tableone$has_eskd, levels = c(1,0), labels = c("Yes", "No"))
 data_tableone$has_sepsis <- factor(data_tableone$has_sepsis, levels = c(1,0), labels = c("Yes", "No"))
+data_tableone$post_surgical_aki <- factor(data_tableone$post_surgical_aki, levels = c(1,0), labels = c("Yes", "No"))
 
 labelestolabel <- list(
   is_female = "Female Sex",
@@ -87,6 +91,7 @@ labelestolabel <- list(
   invasive_ventilation = "Invasive Ventilation at Start of CRRT",
   has_aki_or_acute_on_chronic = "Acute Kidney Injury (AKI)",
   has_eskd = "End-Stage Kidney Disease (ESKD)",
+  post_surgical_aki = "Post-Surgical AKI",
   has_sepsis = "Sepsis",
   length_of_stay = "ICU Length of Stay (days)",
   icu_death = "ICU Death",
@@ -105,7 +110,7 @@ Table1 <- data_tableone %>% dplyr::select(source,
                                           is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                           emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                           vm2201_idx_first, vm2105_first,
-                                          has_aki_or_acute_on_chronic, has_eskd, has_sepsis,
+                                          has_aki_or_acute_on_chronic, has_eskd, post_surgical_aki, has_sepsis,
                                           fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
                                           length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
@@ -159,7 +164,7 @@ eTable1 <- data_e_tableone %>% dplyr::select(mean_UFnet_bin,
                                            is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                            emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                            vm2201_idx_first, vm2105_first,
-                                           has_aki_or_acute_on_chronic, has_eskd, has_sepsis,
+                                           has_aki_or_acute_on_chronic, has_eskd, post_surgical_aki, has_sepsis,
                                            fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
                                            length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
@@ -193,3 +198,4 @@ eTable1
 
 eTable1_gt <- as_gt(eTable1)
 gtsave(eTable1_gt, filename = glue("{R_output_root}/eTable_1.docx"))
+
