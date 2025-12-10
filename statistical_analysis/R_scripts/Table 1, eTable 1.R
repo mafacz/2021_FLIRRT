@@ -66,6 +66,12 @@ data_tableone$fluidoverload_10 <- factor(data_tableone$fluidoverload_10, levels 
 data_tableone$SOFA_score <- as.integer(data_tableone$SOFA_score)
 data_tableone$invasive_ventilation <- factor(data_tableone$invasive_ventilation, levels = c(1,0), labels = c("Yes", "No"))
 
+# Diagnosis review classifications (HiRID patients only, Amsterdam = NA)
+data_tableone$has_aki <- factor(data_tableone$has_aki, levels = c(1,0), labels = c("Yes", "No"))
+data_tableone$has_eskd <- factor(data_tableone$has_eskd, levels = c(1,0), labels = c("Yes", "No"))
+data_tableone$has_acute_on_chronic <- factor(data_tableone$has_acute_on_chronic, levels = c(1,0), labels = c("Yes", "No"))
+data_tableone$has_sepsis <- factor(data_tableone$has_sepsis, levels = c(1,0), labels = c("Yes", "No"))
+
 labelestolabel <- list(
   is_female = "Female Sex",
   age_at_admission = "Age (years)",
@@ -77,6 +83,10 @@ labelestolabel <- list(
   apache_score = "APACHE II Score at ICU-Admission",
   SOFA_score = "SOFA Score at start of CRRT",
   invasive_ventilation = "Invasive Ventilation at Start of CRRT",
+  has_aki = "Acute Kidney Injury (AKI)",
+  has_eskd = "End-Stage Kidney Disease (ESKD)",
+  has_acute_on_chronic = "Acute on Chronic Kidney Disease",
+  has_sepsis = "Sepsis",
   length_of_stay = "ICU Length of Stay (days)",
   icu_death = "ICU Death",
   death_28d = "28-day Death",
@@ -94,6 +104,7 @@ Table1 <- data_tableone %>% dplyr::select(source,
                                           is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                           emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                           vm2201_idx_first, vm2105_first,
+                                          has_aki, has_eskd, has_acute_on_chronic, has_sepsis,
                                           fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
                                           length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
@@ -147,6 +158,7 @@ eTable1 <- data_e_tableone %>% dplyr::select(mean_UFnet_bin,
                                            is_female,age_at_admission,height_at_admission,weight_at_admission,BMI,
                                            emergency_admission,adm_apache_group,apache_score,SOFA_score,invasive_ventilation,
                                            vm2201_idx_first, vm2105_first,
+                                           has_aki, has_eskd, has_acute_on_chronic, has_sepsis,
                                            fluidoverload, positive_fluidoverload, fluidoverload_5, fluidoverload_7, fluidoverload_10,
                                            length_of_stay, icu_death, death_28d) %>% 
   tbl_summary(
