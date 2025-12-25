@@ -575,6 +575,9 @@ combined_Anuria <- Mean_UF_Anuria %>% wrap_elements() | Mean_FB_Anuria %>% wrap_
 ggsave(plot=combined_Anuria, filename = glue("{R_output_root}/eFigure 2b\\eFigure 8g_Onset_Anuria.png"),
        width = 8, height = 6)
 
+#####################################################################################################################3
+##combined plot
+
 combined_sex <- combined_sex + plot_annotation(title = "Sex Subgroup")
 combined_FO <- combined_FO + plot_annotation(title = "Fluid Overload > 10% Subgroup")
 combined_NOR <- combined_NOR + plot_annotation(title = "Norepinephrine > 0.1 µmol/kg/min Subgroup")
@@ -588,3 +591,61 @@ combined_all <- (combined_sex%>% wrap_elements() | combined_FO%>% wrap_elements(
 
 ggsave(plot = combined_all, filename = glue("{R_output_root}/eFigure9.png"),
        width = 20, height = 30)
+
+#####################################################################################################################3
+##Figure 10: sepsis and aki subgroups
+
+## Subgroup plots: for AKI
+AKI_df <- combined %>% filter(source == "HiRID")
+AKI_df <- combined %>% mutate(has_aki_or_acute_on_chronic = if_else(
+  (has_aki == 1 | has_acute_on_chronic == 1) | (source == "HiRID" & has_eskd == 0),1,0))
+AKI_df <- AKI_df %>%  mutate(group_plot = ifelse(has_aki_or_acute_on_chronic == 0,NA,has_aki_or_acute_on_chronic))
+
+Mean_UF_aki <- function_spline_plot_groups(dataframe = AKI_df, x_var = mean_vm5010_idx, group_var = group_plot, y_var = outcome_death_28d,
+                                                      x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
+                                                      legend_labels = c("Overall", "AKI"), 
+                                                      legend_position = "bottom", bins = 70)
+Mean_UF_aki
+
+
+
+Mean_FB_aki <- function_spline_plot_groups(dataframe = AKI_df, x_var = mean_dm_balancerate_h, group_var = group_plot, y_var = outcome_death_28d,
+                                                      x_label = "Mean Fluid Balance Change (ml/h)", y_label = "28-day mortality",
+                                                      legend_labels = c("Overall", "AKI"), 
+                                                      legend_position = "bottom", bins = 70)
+Mean_FB_aki
+
+combined_aki <- Mean_UF_aki %>% wrap_elements() | Mean_FB_aki %>% wrap_elements()
+combined_aki
+ggsave(plot=combined_aki, filename = glue("{R_output_root}/eFigure 10a.png"),
+       width = 12, height = 6)
+
+## Subgroup plots: for Sepsis
+Sepsis_df <- combined %>% filter(source == "HiRID")
+
+Mean_UF_sepsis <- function_spline_plot_groups(dataframe = Sepsis_df, x_var = mean_vm5010_idx, group_var = has_sepsis, y_var = outcome_death_28d,
+                                           x_label = "Mean net Ultrafiltration Rate (ml/kg/h)", y_label = "28-day mortality",
+                                           legend_labels = c("Overall", "Sepsis", "other"), 
+                                           legend_position = "bottom", bins = 70)
+Mean_UF_sepsis
+
+Mean_FB_sepsis <- function_spline_plot_groups(dataframe = Sepsis_df, x_var = mean_dm_balancerate_h, group_var = has_sepsis, y_var = outcome_death_28d,
+                                           x_label = "Mean Fluid Balance Change (ml/h)", y_label = "28-day mortality",
+                                           legend_labels = c("Overall", "Sepsis", "Other"), 
+                                           legend_position = "bottom", bins = 70)
+Mean_FB_sepsis
+
+combined_sepsis <- Mean_UF_sepsis %>% wrap_elements() | Mean_FB_sepsis %>% wrap_elements()
+combined_sepsis
+ggsave(plot=combined_sepsis, filename = glue("{R_output_root}/eFigure 10b.png"),
+       width = 12, height = 6)
+
+## Combine plots
+combined_aki <- combined_aki + plot_annotation(title= "Acute Kidney Injury Subgroup")
+combined_sepsis <- combined_sepsis + plot_annotation(title = "Sepsis Subgroup")
+
+combined_all2 <- (combined_aki%>% wrap_elements() | combined_sepsis %>% wrap_elements()) +
+  plot_annotation(tag_levels = 'a')
+ggsave(plot=combined_all2, filename = glue("{R_output_root}/eFigure 10.png"),
+       width = 12, height = 6)
+
