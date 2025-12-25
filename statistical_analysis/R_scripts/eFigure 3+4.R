@@ -202,7 +202,7 @@ eFigure_4e <- forest_model(model_both_mean_NOR_adj, exponentiate = TRUE)
 ggsave(plot= eFigure_4e, filename =  glue("{R_output_root}/eFigure4b.png"),
        width = 16, height = 6)
 
-combined_plot <- eFigure_4 /eFigure_4e +
+combined_plot <- eFigure_4e /eFigure_4 +
   plot_annotation(tag_levels = 'a')
 # Save the  4combined figure
 ggsave(plot = combined_plot, filename = glue("{R_output_root}/eFigure4.png"), width = 16, height = 30)
