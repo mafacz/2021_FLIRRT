@@ -42,6 +42,8 @@ UF_and_FB <- read.csv(glue("{file_prefix}/Fluid_and_Ultrafiltration_Total.csv"))
                 mean_FB_bin, mean_FB_bin_48h, mean_FB_bin_FBneg, Q1_FB_bin)
 mortality <- read.csv(glue("{file_prefix}/stays_fused_Total.csv"))
 combined <- inner_join(UF_and_FB, mortality, by="patid")
+noradrenaline <- read.csv(glue("{file_prefix}/Lab_values_reg_Total.csv")) %>% dplyr::select(patid, Noradrenalin_increase_0.1_mcgkgmin) %>% mutate(Noradrenalin_increase_0.1_mcgkgmin = ifelse(Noradrenalin_increase_0.1_mcgkgmin > 0, 1,0))
+combined <- inner_join(combined, noradrenaline, by="patid")
 
 ################################################################################
 
@@ -112,6 +114,7 @@ combined$mean_FB_bin_FBneg <- factor(combined$mean_FB_bin_FBneg,
                                               "light negative (-62.5 - -20.84)",
                                               "positive (>20.83)"))
 combined$gender <- factor(combined$gender, levels = c("F", "M"), labels = c("Female", "Male"))
+combined$Noradrenalin_increase_0.1_mcgkgmin <- factor(combined2$Noradrenalin_increase_0.1_mcgkgmin, levels = c(0,1), labels=c("False","True"))
 
 ################################################################################
 
@@ -132,6 +135,7 @@ combined <- combined %>%
     apache_score = "APACHE score at admission",
     SOFA_score = "SOFA score at start of CRRT",
     invasive_ventilation = "Invasive Ventilation at start of CRRT",
+    Noradrenalin_increase_0.1_mcgkgmin = "Noradrenaline increase above 0.1 mcg/kg/min",
     session_length = "Duration of CRRT session")
 
 labelled::var_label(combined$mean_UFnet_bin_UFpos)
@@ -167,6 +171,9 @@ model_both_FBneg_adj <- glm(outcome_death_28d ~ mean_UFnet_bin + mean_FB_bin_FBn
 model_both_AUC_adj <- glm(outcome_death_28d ~ UF_AUC + mean_FB_bin + age_at_admission + gender + BMI +
                             emergency_admission + apache_score + SOFA_score + invasive_ventilation + session_length,
                           data = combined, family = binomial)
+model_both_mean_NOR_adj <- glm(outcome_death_28d ~ mean_UFnet_bin + mean_FB_bin + age_at_admission + gender + BMI +
+                             emergency_admission + apache_score + SOFA_score + invasive_ventilation +Noradrenalin_increase_0.1_mcgkgmin+ session_length,
+                           data = combined2, family = binomial)
 
 eFigure_4b1 <- forest_model(model_both_Q3_adj, exponentiate = TRUE)
 ggsave(plot= eFigure_4b1, filename = glue("{R_output_root}/eFigure 4b1.png"),
@@ -183,10 +190,19 @@ combined_plot <- eFigure_4a / eFigure_4b1 / eFigure_4b2 / eFigure_4b3 +
   plot_layout(heights = c(0.6, 1,1,1)) +
   plot_annotation(tag_levels = 'a')
 
-# Save the combined figure 3
+# Save the  3combined figure
 ggsave(plot = combined_plot, filename = glue("{R_output_root}/eFigure3.png"), width = 16, height = 30)
 
-####Figure 4
+####Figure 4 (Early NUF increase // including Noradrenalin increase)
+
 eFigure_4 <- forest_model(model_both_AUC_adj, exponentiate = TRUE)
-ggsave(plot= eFigure_4, filename =  glue("{R_output_root}/eFigure4.png"),
+ggsave(plot= eFigure_4, filename =  glue("{R_output_root}/eFigure4a.png"),
        width = 16, height = 6)
+eFigure_4e <- forest_model(model_both_mean_NOR_adj, exponentiate = TRUE)
+ggsave(plot= eFigure_4e, filename =  glue("{R_output_root}/eFigure4b.png"),
+       width = 16, height = 6)
+
+combined_plot <- eFigure_4 /eFigure_4e +
+  plot_annotation(tag_levels = 'a')
+# Save the  4combined figure
+ggsave(plot = combined_plot, filename = glue("{R_output_root}/eFigure4.png"), width = 16, height = 30)
